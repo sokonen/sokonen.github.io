@@ -1,0 +1,749 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<HTML>
+ <HEAD>
+  <TITLE> New Document </TITLE>
+  <META NAME="Generator" CONTENT="EditPlus">
+  <META NAME="Author" CONTENT="">
+  <META NAME="Keywords" CONTENT="">
+  <META NAME="Description" CONTENT="">
+
+<style type="text/css">
+<!--
+img{
+	#width:300px;
+	#height:300px;
+	max-width:300px;
+	max-height:300px;
+}
+-->
+</style>
+
+<script language="javascript">
+//能否弄一个公用的方法，贴入url即可产生一个表格，
+//使得每个图片点击一下，即可标记是否是恶意图片
+//最后表格可以复制出来，以便对比
+//js不方便处理的话，也可以使用cgi
+
+//从xml文档中得到指定名字结点(只得到文档中第一个该名称结点)
+function getUniqueNode(xmlRoot,nodeName){
+	if ( xmlRoot == null ) {
+		return null;
+	}
+	var temp = xmlRoot.getElementsByTagName(nodeName);
+	if (temp.length == 0)
+	{
+		//window.alert("in getUniqueNode("+nodeName+").length == 0");
+		return null;
+	}
+	else{
+		return temp[0];
+	}
+}
+
+/***************
+ * @FuncName:	ClearTabData
+ * @Desc:		清除指定的tab中的所有行，包括表头
+ * @Param:		objTab: 指定的要清除所有元素的table obj
+ * @Param:		isSkipTH	,是否要清除表头
+ * @Return:		成功返回true，否则返回false
+ * @Author:		kennyli
+ * @Date:		20080331
+ */
+function ClearTabData(objTab,isSkipTH)
+{
+	//make sure that objTab is a table
+	if ( objTab == null )
+	{
+		window.alert("objTab is null");
+		return false;
+	}
+	if ( objTab.nodeName != "TABLE" )
+	{
+		window.alert("objTab="+objTab+":"+objTab.nodeName+" is not a TABLE!");
+		return false;
+	}
+	if ( !objTab.hasChildNodes() )
+	{
+		window.alert("objTab has no child");
+		return false;
+	}
+
+	//get tbody of the table
+	var curNode;
+	for ( curNode = objTab.firstChild; curNode != null; curNode=curNode.nextSibling )
+	{
+		//alert("in table"+objTab.id+"'s node: "+curNode.nodeName);
+		if (curNode.nodeName == "TBODY")
+			break;
+	}
+	if (curNode == null)
+	{	//cannot find tbody
+		window.alert("obj has no child named TBODY,try to add a TBODY");
+		curNode = document.createElement("TBODY");
+		objTab.appendChild(curNode);
+	}
+
+	//remove all rows
+	var count=curNode.childNodes.length;
+	for (var i=count-1; i>=0; i--)
+	{
+		var subNode ;
+		if ( curNode.childNodes[i].nodeName=="TR" && 
+			getUniqueNode(curNode.childNodes[i], "TH") != null  ) {
+			if ( !isSkipTH  ) {
+				//如果设置需要清理表头,则清理表头
+				curNode.removeChild(curNode.childNodes[i]);
+			}
+		}
+		else
+		{
+			curNode.removeChild(curNode.childNodes[i]);
+		}
+	}
+	/* 这种方式无法过滤条件,因为如果某个结点想跳过,则会产生死循环
+	while( curNode.childNodes.length > 0 ) {
+		if ( curNode.childNodes[0].nodeName=="TH") {
+			if ( !isSkipTH  ) {
+				//如果设置需要清理表头,则清理表头
+				curNode.removeChild(curNode.childNodes[0]);
+			}
+		}
+		else
+		{
+			curNode.removeChild(curNode.childNodes[0]);
+		}
+	}
+	*/
+
+	return true;
+}
+
+//产生一个text的td元素,id指定为idname
+function CreateCellWithText(text,idname) {
+	var cell = document.createElement("td");
+	cell.id=idname;
+	cell.appendChild(document.createTextNode(text));
+	return cell;
+}
+
+//产生一个text的th元素
+function CreateHeadCellWithText(text,idname) {
+	var cell = document.createElement("th");
+	cell.id=idname;
+	cell.appendChild(document.createTextNode(text));
+	return cell;
+}
+
+//产生一个带颜色的text类型的td元素
+function CreateCellWithTextColor(text,color,idname){
+	var cell = document.createElement("td");
+	var textelement  = document.createTextNode(text);
+	cell.id=idname;
+	cell.appendChild(textelement);
+	cell.style.color = color;
+	return cell;
+}
+
+//产生一个图片的td元素
+function CreateCellWithImage(imagePath,idname,imgid){
+	var cell = document.createElement("td");
+	//var div = document.createElement("div");
+	var image = document.createElement("img");
+	image.id=imgid;
+	image.src=imagePath;
+	//div.appendChild(image);
+	cell.id=idname;
+	//cell.appendChild(div);
+	cell.appendChild(image);
+	return cell;
+}
+
+/*
+var arrImgUrl = new Array(
+	"http://t1.baidu.com/it/u=899092003,4147945803&fm=0&gp=10.jpg",
+	"http://t3.baidu.com/it/u=2897510321,2823786475&fm=0&gp=6.jpg",
+	"http://t1.baidu.com/it/u=3206998081,3235512099&fm=0&gp=0.jpg",
+	"http://t1.baidu.com/it/u=3150010129,2672052786&fm=0&gp=30.jpg",
+	"http://t3.baidu.com/it/u=3231865955,1529706532&fm=0&gp=14.jpg",
+	"http://t2.baidu.com/it/u=1139574840,2584303366&fm=0&gp=8.jpg"
+);
+*/
+
+function bodyclickHandler(evt)
+{
+    //var evt = window.event || evt;  //取事件
+    var obj = evt.srcElement || evt.target; //取事件源
+	//alert("clicked:"+obj.id);
+	var idprefix=obj.id.substring(0,5);
+	var idnum = obj.id.substr(5);
+	if("valTD"==idprefix)
+	{
+		//alert(idnum);
+		var valObj = document.getElementById("valTD"+idnum);
+		if(valObj.innerHTML==1){
+			valObj.style.color="#000000";
+			valObj.style.backgroundColor="#ffffff";
+			valObj.innerHTML = 0;
+		}
+		else{
+			valObj.style.color="#ff0000";
+			valObj.style.backgroundColor="#ff00ff";
+			valObj.innerHTML = 1;
+		}
+		getMarkedImgUrl();
+	}
+	else if("myimg"==idprefix)
+	{
+		//alert("img "+idnum+" was clicked! URL="+obj.src);
+		window.open(obj.src);
+	}
+}
+
+</script>
+</HEAD>
+
+<BODY onclick=bodyclickHandler(event)>
+
+<div id="divURL" style="display:block">
+	<label>请输入图片URL：</label>
+	<input type=button value="显示图片" onclick="loadImg()"/>
+	<br/>
+	<textarea cols="40" rows="15" style="width:850px;height:400px;" name="idTxtAreaUrl" id="idTxtAreaUrl"></textarea>
+</div>
+
+<div id="divImg" style="display:none">
+
+	<table id="table1" border=1px>
+	<!--input type=button value="loadimg" onclick="loadImg()"/-->
+	<thead>
+		<tr>
+			<th>ID</th><th>图片</th><th>是否做标记</th>
+		</tr>
+	</thead>
+	<tbody id="idTable">
+
+	</tbody>
+	</table>
+	<div>
+		<div>
+			<input type=button value="获取被标记图片的URL" onclick="getMarkedImgUrl()"/>
+			<input type=button value="返回" onclick="location.reload()"/>
+		</div>
+		<div>
+			<label >被标记图片的URL列表：&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label><span class=""></span><label id="labelMarkedImgCnt"></label>
+		</div>
+		<textarea cols="40" rows="5" style="width:850px;height:200px;" disabled="disabled" name="idTxtAreaMarkedUrl" id="idTxtAreaMarkedUrl"></textarea>
+	</div>
+</div>
+
+</BODY>
+
+
+<script language="javascript">
+
+	function getMarkedImgUrl() {
+		var tabBody = document.getElementById("idTable");
+		var dstTxtArea = document.getElementById("idTxtAreaMarkedUrl");
+		dstTxtArea.innerHTML="";
+		var cnt=0;
+		for (var i=0; i<tabBody.rows.length;i++) {
+			//if(1==tabBody.rows[i].cells[2].innerHTML){
+			if(1==document.getElementById("valTD"+i).innerHTML){
+				//讲该列的URL贴到下面的表格中
+				//dstTxtArea.innerHTML+=tabBody.rows[i].cells[1].firstChild.src;
+				dstTxtArea.innerHTML+=document.getElementById("myimg"+i).src;
+				dstTxtArea.innerHTML+="\n";
+				cnt++;
+			}
+		}
+		if(0==cnt) {
+			document.getElementById("labelMarkedImgCnt").innerHTML="<b>没有标记任何图片！</b>";
+			document.getElementById("labelMarkedImgCnt").style.color="red";
+		}
+		else{
+			document.getElementById("labelMarkedImgCnt").innerHTML="<b>共标记了 "+cnt+" 张图片！</b>";
+			document.getElementById("labelMarkedImgCnt").style.color="blue";
+			//alert("选中了"+cnt+"张图！");
+		}
+		
+	}
+
+	function addEventHandler(oTarget, sEventType, fnHandler) {  
+		if (oTarget.addEventListener) {  
+			oTarget.addEventListener(sEventType, fnHandler, false);  
+		} else if (oTarget.attachEvent) {  
+			oTarget.attachEvent("on" + sEventType, fnHandler);  
+		} else {  
+			oTarget["on" + sEventType] = fnHandler;  
+		}  
+	};  
+
+	function clickHandler(opObjID){
+		var opObj = document.getElementById(opObjID);
+		if(null==opObj || "undefined"==opObj)
+		{
+			//alert("onclick:"+opObjID);
+			return;
+		}
+		opObj.style.color = "#ff0000"
+	}
+
+	function loadImg(){
+		
+		var objDivUrl = document.getElementById("divURL");
+		var objDivImg = document.getElementById("divImg");
+		objDivUrl.style.display="none";
+		objDivImg.style.display="block";
+
+		var ObjURLTxt = document.getElementById("idTxtAreaUrl");
+		//var content   = ObjURLTxt.value.split('\n').join('<br>');
+		var content   = ObjURLTxt.value.split('\n');
+		var arrImgUrl = content;
+		
+		//alert(arrImgUrl);
+		///*
+		ClearTabData(document.getElementById("table1"),false);
+		
+		for ( var i=0; i<arrImgUrl.length; i++ )
+		{
+			if(arrImgUrl[i].length==0)
+			{
+				//alert("0 len:"+arrImgUrl[i]);
+				continue;
+			}
+			var tabBody = document.getElementById("idTable");
+			var row=document.createElement("tr");
+			var idTD = CreateCellWithText(i+1,"idTD"+i);
+			var imgTD = CreateCellWithImage(arrImgUrl[i],"imgTD"+i,"myimg"+i);
+			var txtTD = CreateCellWithText("0","valTD"+i);
+			//imgTD.onclick=clickHandler("val"+i);	//IE下进入页面就触发，且不能正常运行，提示尚未实现；FF下进入页面就触发
+			//addEventHandler(imgTD,"click",		//
+			row.appendChild(idTD);
+			row.appendChild(imgTD);
+			row.appendChild(txtTD);
+			tabBody.appendChild(row);
+			//alert("Now we got "+i+"rows");
+		}
+		//*/
+	}
+
+	//loadImg();
+
+</script>
+
+</HTML>
+
+
+<!--
+<table border=1px>
+	<tr>
+		<th>图片</th>
+		<th>是否恶意</th>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=110401422&fid=27348"/></td>
+		<td id=td1>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=40301280&fid=48791"/></td>
+		<td id=td2>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=161300321&fid=39295"/></td>
+		<td id=td3>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=120400838&fid=20494"/></td>
+		<td id=td4>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=180100173&fid=16843"/></td>
+		<td id=td5>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=101001072&fid=14796"/></td>
+		<td id=td6>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=121202950&fid=7768"/></td>
+		<td id=td7>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=11302145&fid=10877"/></td>
+		<td id=td8>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=81200536&fid=5700"/></td>
+		<td id=td9>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=10200019&fid=33894"/></td>
+		<td id=td10>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=120701870&fid=7012"/></td>
+		<td id=td11>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=140801640&fid=11409"/></td>
+		<td id=td12>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=60301272&fid=5981"/></td>
+		<td id=td13>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=61601274&fid=32659"/></td>
+		<td id=td14>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=110902645&fid=31394"/></td>
+		<td id=td15>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=41301340&fid=54624"/></td>
+		<td id=td16>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=160101335&fid=1321"/></td>
+		<td id=td17>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=100701046&fid=22262"/></td>
+		<td id=td18>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=190800339&fid=8866"/></td>
+		<td id=td19>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=110802937&fid=18008"/></td>
+		<td id=td20>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=230200728&fid=6813"/></td>
+		<td id=td21>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=170303292&fid=914"/></td>
+		<td id=td22>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=210502364&fid=41381"/></td>
+		<td id=td23>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=110700388&fid=4809"/></td>
+		<td id=td24>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=151002593&fid=3048"/></td>
+		<td id=td25>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=131202980&fid=6247"/></td>
+		<td id=td26>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=20600713&fid=105"/></td>
+		<td id=td27>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=171000541&fid=27978"/></td>
+		<td id=td28>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=50200878&fid=943"/></td>
+		<td id=td29>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=151301967&fid=49448"/></td>
+		<td id=td30>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=120300385&fid=32241"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=80703034&fid=29204"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=91101913&fid=13811"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=150902058&fid=47591"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=30901940&fid=29608"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=221401007&fid=31408"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=110701022&fid=23948"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=190101184&fid=44296"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=151401592&fid=15475"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=50300595&fid=52164"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=120701563&fid=12498"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=200200746&fid=23163"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=110902708&fid=26177"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=200601621&fid=17383"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=51500659&fid=36237"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=110303608&fid=9519"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=60902806&fid=8576"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=10101426&fid=4124"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=180402468&fid=366"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=180202941&fid=37603"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=200803243&fid=31012"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=150501516&fid=41399"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=190701875&fid=23590"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=100602664&fid=35168"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=160101174&fid=3223"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=120902842&fid=24825"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=120602157&fid=15799"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=211600395&fid=49232"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=61500685&fid=23430"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=180402709&fid=18843"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=90701802&fid=40772"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=121403085&fid=32318"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=90801545&fid=17940"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=140902420&fid=16766"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=200703585&fid=24491"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=170900015&fid=174"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=110801223&fid=25460"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=41201604&fid=11133"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=80500726&fid=31566"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=160800296&fid=15452"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=31302337&fid=1804"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=30201299&fid=63066"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=30601562&fid=60676"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=190802329&fid=37197"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=130300268&fid=30007"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=91301022&fid=5972"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=200702621&fid=960"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=40900580&fid=31448"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=81302195&fid=48504"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=41202883&fid=2910"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=140401530&fid=22039"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=200801793&fid=19808"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=90602051&fid=35544"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=50901467&fid=47659"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=61102081&fid=18662"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=130800550&fid=10596"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=51402225&fid=46113"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=190700134&fid=33063"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=121001099&fid=13059"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=91402677&fid=9957"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=30600761&fid=13195"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=91300381&fid=6421"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=200602504&fid=13030"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=201201176&fid=40691"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=101001004&fid=30480"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=260703503&fid=17768"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=170500051&fid=16989"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=190800954&fid=32261"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=51302327&fid=51094"/></td>
+		<td>0</td>
+	</tr>
+	<tr>
+		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=161100254&fid=30302"/></td>
+		<td>0</td>
+	</tr>
+
+</table>
+
+ </BODY>
+</HTML>
+
+-->
