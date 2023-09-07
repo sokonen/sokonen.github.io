@@ -2,6 +2,7 @@
 <HTML>
  <HEAD>
   <TITLE> New Document </TITLE>
+  <meta charset="utf-8">
   <META NAME="Generator" CONTENT="EditPlus">
   <META NAME="Author" CONTENT="">
   <META NAME="Keywords" CONTENT="">
@@ -19,12 +20,12 @@ img{
 </style>
 
 <script language="javascript">
-//ÄÜ·ñÅªÒ»¸ö¹«ÓÃµÄ·½·¨£¬ÌùÈëurl¼´¿É²úÉúÒ»¸ö±í¸ñ£¬
-//Ê¹µÃÃ¿¸öÍ¼Æ¬µã»÷Ò»ÏÂ£¬¼´¿É±ê¼ÇÊÇ·ñÊÇ¶ñÒâÍ¼Æ¬
-//×îºó±í¸ñ¿ÉÒÔ¸´ÖÆ³öÀ´£¬ÒÔ±ã¶Ô±È
-//js²»·½±ã´¦ÀíµÄ»°£¬Ò²¿ÉÒÔÊ¹ÓÃcgi
+//èƒ½å¦å¼„ä¸€ä¸ªå…¬ç”¨çš„æ–¹æ³•ï¼Œè´´å…¥urlå³å¯äº§ç”Ÿä¸€ä¸ªè¡¨æ ¼ï¼Œ
+//ä½¿å¾—æ¯ä¸ªå›¾ç‰‡ç‚¹å‡»ä¸€ä¸‹ï¼Œå³å¯æ ‡è®°æ˜¯å¦æ˜¯æ¶æ„å›¾ç‰‡
+//æœ€åè¡¨æ ¼å¯ä»¥å¤åˆ¶å‡ºæ¥ï¼Œä»¥ä¾¿å¯¹æ¯”
+//jsä¸æ–¹ä¾¿å¤„ç†çš„è¯ï¼Œä¹Ÿå¯ä»¥ä½¿ç”¨cgi
 
-//´ÓxmlÎÄµµÖĞµÃµ½Ö¸¶¨Ãû×Ö½áµã(Ö»µÃµ½ÎÄµµÖĞµÚÒ»¸ö¸ÃÃû³Æ½áµã)
+//ä»xmlæ–‡æ¡£ä¸­å¾—åˆ°æŒ‡å®šåå­—ç»“ç‚¹(åªå¾—åˆ°æ–‡æ¡£ä¸­ç¬¬ä¸€ä¸ªè¯¥åç§°ç»“ç‚¹)
 function getUniqueNode(xmlRoot,nodeName){
 	if ( xmlRoot == null ) {
 		return null;
@@ -42,10 +43,10 @@ function getUniqueNode(xmlRoot,nodeName){
 
 /***************
  * @FuncName:	ClearTabData
- * @Desc:		Çå³ıÖ¸¶¨µÄtabÖĞµÄËùÓĞĞĞ£¬°üÀ¨±íÍ·
- * @Param:		objTab: Ö¸¶¨µÄÒªÇå³ıËùÓĞÔªËØµÄtable obj
- * @Param:		isSkipTH	,ÊÇ·ñÒªÇå³ı±íÍ·
- * @Return:		³É¹¦·µ»Øtrue£¬·ñÔò·µ»Øfalse
+ * @Desc:		æ¸…é™¤æŒ‡å®šçš„tabä¸­çš„æ‰€æœ‰è¡Œï¼ŒåŒ…æ‹¬è¡¨å¤´
+ * @Param:		objTab: æŒ‡å®šçš„è¦æ¸…é™¤æ‰€æœ‰å…ƒç´ çš„table obj
+ * @Param:		isSkipTH	,æ˜¯å¦è¦æ¸…é™¤è¡¨å¤´
+ * @Return:		æˆåŠŸè¿”å›trueï¼Œå¦åˆ™è¿”å›false
  * @Author:		kennyli
  * @Date:		20080331
  */
@@ -91,7 +92,7 @@ function ClearTabData(objTab,isSkipTH)
 		if ( curNode.childNodes[i].nodeName=="TR" && 
 			getUniqueNode(curNode.childNodes[i], "TH") != null  ) {
 			if ( !isSkipTH  ) {
-				//Èç¹ûÉèÖÃĞèÒªÇåÀí±íÍ·,ÔòÇåÀí±íÍ·
+				//å¦‚æœè®¾ç½®éœ€è¦æ¸…ç†è¡¨å¤´,åˆ™æ¸…ç†è¡¨å¤´
 				curNode.removeChild(curNode.childNodes[i]);
 			}
 		}
@@ -100,11 +101,11 @@ function ClearTabData(objTab,isSkipTH)
 			curNode.removeChild(curNode.childNodes[i]);
 		}
 	}
-	/* ÕâÖÖ·½Ê½ÎŞ·¨¹ıÂËÌõ¼ş,ÒòÎªÈç¹ûÄ³¸ö½áµãÏëÌø¹ı,Ôò»á²úÉúËÀÑ­»·
+	/* è¿™ç§æ–¹å¼æ— æ³•è¿‡æ»¤æ¡ä»¶,å› ä¸ºå¦‚æœæŸä¸ªç»“ç‚¹æƒ³è·³è¿‡,åˆ™ä¼šäº§ç”Ÿæ­»å¾ªç¯
 	while( curNode.childNodes.length > 0 ) {
 		if ( curNode.childNodes[0].nodeName=="TH") {
 			if ( !isSkipTH  ) {
-				//Èç¹ûÉèÖÃĞèÒªÇåÀí±íÍ·,ÔòÇåÀí±íÍ·
+				//å¦‚æœè®¾ç½®éœ€è¦æ¸…ç†è¡¨å¤´,åˆ™æ¸…ç†è¡¨å¤´
 				curNode.removeChild(curNode.childNodes[0]);
 			}
 		}
@@ -118,7 +119,7 @@ function ClearTabData(objTab,isSkipTH)
 	return true;
 }
 
-//²úÉúÒ»¸ötextµÄtdÔªËØ,idÖ¸¶¨Îªidname
+//äº§ç”Ÿä¸€ä¸ªtextçš„tdå…ƒç´ ,idæŒ‡å®šä¸ºidname
 function CreateCellWithText(text,idname) {
 	var cell = document.createElement("td");
 	cell.id=idname;
@@ -126,7 +127,7 @@ function CreateCellWithText(text,idname) {
 	return cell;
 }
 
-//²úÉúÒ»¸ötextµÄthÔªËØ
+//äº§ç”Ÿä¸€ä¸ªtextçš„thå…ƒç´ 
 function CreateHeadCellWithText(text,idname) {
 	var cell = document.createElement("th");
 	cell.id=idname;
@@ -134,7 +135,7 @@ function CreateHeadCellWithText(text,idname) {
 	return cell;
 }
 
-//²úÉúÒ»¸ö´øÑÕÉ«µÄtextÀàĞÍµÄtdÔªËØ
+//äº§ç”Ÿä¸€ä¸ªå¸¦é¢œè‰²çš„textç±»å‹çš„tdå…ƒç´ 
 function CreateCellWithTextColor(text,color,idname){
 	var cell = document.createElement("td");
 	var textelement  = document.createTextNode(text);
@@ -144,7 +145,7 @@ function CreateCellWithTextColor(text,color,idname){
 	return cell;
 }
 
-//²úÉúÒ»¸öÍ¼Æ¬µÄtdÔªËØ
+//äº§ç”Ÿä¸€ä¸ªå›¾ç‰‡çš„tdå…ƒç´ 
 function CreateCellWithImage(imagePath,idname,imgid){
 	var cell = document.createElement("td");
 	//var div = document.createElement("div");
@@ -171,8 +172,8 @@ var arrImgUrl = new Array(
 
 function bodyclickHandler(evt)
 {
-    //var evt = window.event || evt;  //È¡ÊÂ¼ş
-    var obj = evt.srcElement || evt.target; //È¡ÊÂ¼şÔ´
+    //var evt = window.event || evt;  //å–äº‹ä»¶
+    var obj = evt.srcElement || evt.target; //å–äº‹ä»¶æº
 	//alert("clicked:"+obj.id);
 	var idprefix=obj.id.substring(0,5);
 	var idnum = obj.id.substr(5);
@@ -205,8 +206,8 @@ function bodyclickHandler(evt)
 <BODY onclick=bodyclickHandler(event)>
 
 <div id="divURL" style="display:block">
-	<label>ÇëÊäÈëÍ¼Æ¬URL£º</label>
-	<input type=button value="ÏÔÊ¾Í¼Æ¬" onclick="loadImg()"/>
+	<label>è¯·è¾“å…¥å›¾ç‰‡URLï¼š</label>
+	<input type=button value="æ˜¾ç¤ºå›¾ç‰‡" onclick="loadImg()"/>
 	<br/>
 	<textarea cols="40" rows="15" style="width:850px;height:400px;" name="idTxtAreaUrl" id="idTxtAreaUrl"></textarea>
 </div>
@@ -217,7 +218,7 @@ function bodyclickHandler(evt)
 	<!--input type=button value="loadimg" onclick="loadImg()"/-->
 	<thead>
 		<tr>
-			<th>ID</th><th>Í¼Æ¬</th><th>ÊÇ·ñ×ö±ê¼Ç</th>
+			<th>ID</th><th>å›¾ç‰‡</th><th>æ˜¯å¦åšæ ‡è®°</th>
 		</tr>
 	</thead>
 	<tbody id="idTable">
@@ -226,11 +227,11 @@ function bodyclickHandler(evt)
 	</table>
 	<div>
 		<div>
-			<input type=button value="»ñÈ¡±»±ê¼ÇÍ¼Æ¬µÄURL" onclick="getMarkedImgUrl()"/>
-			<input type=button value="·µ»Ø" onclick="location.reload()"/>
+			<input type=button value="è·å–è¢«æ ‡è®°å›¾ç‰‡çš„URL" onclick="getMarkedImgUrl()"/>
+			<input type=button value="è¿”å›" onclick="location.reload()"/>
 		</div>
 		<div>
-			<label >±»±ê¼ÇÍ¼Æ¬µÄURLÁĞ±í£º&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label><span class=""></span><label id="labelMarkedImgCnt"></label>
+			<label >è¢«æ ‡è®°å›¾ç‰‡çš„URLåˆ—è¡¨ï¼š&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label><span class=""></span><label id="labelMarkedImgCnt"></label>
 		</div>
 		<textarea cols="40" rows="5" style="width:850px;height:200px;" disabled="disabled" name="idTxtAreaMarkedUrl" id="idTxtAreaMarkedUrl"></textarea>
 	</div>
@@ -249,7 +250,7 @@ function bodyclickHandler(evt)
 		for (var i=0; i<tabBody.rows.length;i++) {
 			//if(1==tabBody.rows[i].cells[2].innerHTML){
 			if(1==document.getElementById("valTD"+i).innerHTML){
-				//½²¸ÃÁĞµÄURLÌùµ½ÏÂÃæµÄ±í¸ñÖĞ
+				//è®²è¯¥åˆ—çš„URLè´´åˆ°ä¸‹é¢çš„è¡¨æ ¼ä¸­
 				//dstTxtArea.innerHTML+=tabBody.rows[i].cells[1].firstChild.src;
 				dstTxtArea.innerHTML+=document.getElementById("myimg"+i).src;
 				dstTxtArea.innerHTML+="\n";
@@ -257,13 +258,13 @@ function bodyclickHandler(evt)
 			}
 		}
 		if(0==cnt) {
-			document.getElementById("labelMarkedImgCnt").innerHTML="<b>Ã»ÓĞ±ê¼ÇÈÎºÎÍ¼Æ¬£¡</b>";
+			document.getElementById("labelMarkedImgCnt").innerHTML="<b>æ²¡æœ‰æ ‡è®°ä»»ä½•å›¾ç‰‡ï¼</b>";
 			document.getElementById("labelMarkedImgCnt").style.color="red";
 		}
 		else{
-			document.getElementById("labelMarkedImgCnt").innerHTML="<b>¹²±ê¼ÇÁË "+cnt+" ÕÅÍ¼Æ¬£¡</b>";
+			document.getElementById("labelMarkedImgCnt").innerHTML="<b>å…±æ ‡è®°äº† "+cnt+" å¼ å›¾ç‰‡ï¼</b>";
 			document.getElementById("labelMarkedImgCnt").style.color="blue";
-			//alert("Ñ¡ÖĞÁË"+cnt+"ÕÅÍ¼£¡");
+			//alert("é€‰ä¸­äº†"+cnt+"å¼ å›¾ï¼");
 		}
 		
 	}
@@ -316,7 +317,7 @@ function bodyclickHandler(evt)
 			var idTD = CreateCellWithText(i+1,"idTD"+i);
 			var imgTD = CreateCellWithImage(arrImgUrl[i],"imgTD"+i,"myimg"+i);
 			var txtTD = CreateCellWithText("0","valTD"+i);
-			//imgTD.onclick=clickHandler("val"+i);	//IEÏÂ½øÈëÒ³Ãæ¾Í´¥·¢£¬ÇÒ²»ÄÜÕı³£ÔËĞĞ£¬ÌáÊ¾ÉĞÎ´ÊµÏÖ£»FFÏÂ½øÈëÒ³Ãæ¾Í´¥·¢
+			//imgTD.onclick=clickHandler("val"+i);	//IEä¸‹è¿›å…¥é¡µé¢å°±è§¦å‘ï¼Œä¸”ä¸èƒ½æ­£å¸¸è¿è¡Œï¼Œæç¤ºå°šæœªå®ç°ï¼›FFä¸‹è¿›å…¥é¡µé¢å°±è§¦å‘
 			//addEventHandler(imgTD,"click",		//
 			row.appendChild(idTD);
 			row.appendChild(imgTD);
@@ -337,8 +338,8 @@ function bodyclickHandler(evt)
 <!--
 <table border=1px>
 	<tr>
-		<th>Í¼Æ¬</th>
-		<th>ÊÇ·ñ¶ñÒâ</th>
+		<th>å›¾ç‰‡</th>
+		<th>æ˜¯å¦æ¶æ„</th>
 	</tr>
 	<tr>
 		<td><img height=300 width=300 src="http://172.23.148.211/cgi-bin/AllPicAudit/QzonePicaudit/getchf.jpg?chid=110401422&fid=27348"/></td>
