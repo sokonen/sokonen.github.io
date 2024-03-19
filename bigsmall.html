@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+    </head>
+    <style type="text/css" media="screen">
+        #word{
+            height:30px;
+            width:300px;
+        }
+        button{
+            height:30px;
+            width:60px;
+        }
+    </style>
+    <body>
+    <input id="word"></input><button onclick="letterCasePermutation()">提交</button>
+    <div id="result">
+        
+    </div>
+    </body>
+
+<script>
+    const letterCasePermutation = () => {
+    var S = document.getElementById("word").value;
+    let resultArr = [];
+    resultArr.push(S);
+    for (let i = 0; i < S.length; i++) {
+        let middle = JSON.parse(JSON.stringify(resultArr));//
+        // console.log(middle);
+        if (S[i] >= `a` && S[i] <= `z`) {  
+            resultArr.map(item => { 
+                let str = item.slice(0, i) + item[i].toUpperCase() + item.slice(i + 1);
+                middle.push(str);
+            });
+        } else if (S[i] >= `A` && S[i] <= `Z`) { 
+            resultArr.map(item => {
+                let str = item.slice(0, i) + item[i].toLowerCase() + item.slice(i + 1);
+                middle.push(str);
+            });
+        }
+        resultArr = middle;
+    }
+    var resultDiv = document.getElementById("result");
+    resultDiv.innerHTML = resultArr.join('</br>')
+   console.log(resultArr);
+};
+    document.onkeydown = function (e) { // 回车提交表单
+    // 兼容FF和IE和Opera
+        var theEvent = window.event || e;
+        var code = theEvent.keyCode || theEvent.which || theEvent.charCode;
+        if (code == 13) {
+            letterCasePermutation();
+        }
+    }
+
+
+</script>
+
+</html>
