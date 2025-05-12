@@ -106,7 +106,7 @@
                         <div class="space-y-4">
                             <div>
                                 <label for="scale" class="block text-sm font-medium text-neutral-600 mb-1">叠加图片大小</label>
-                                <input type="range" id="scale" min="0.1" max="2" step="0.05" value="1" class="w-full h-2 bg-neutral-200 rounded-lg appearance-none cursor-pointer accent-primary">
+                                <input type="range" id="scale" min="0.1" max="5" step="0.05" value="1" class="w-full h-2 bg-neutral-200 rounded-lg appearance-none cursor-pointer accent-primary">
                                 <div class="flex justify-between text-xs text-neutral-500 mt-1">
                                     <span>更小</span>
                                     <span id="scale-value">100%</span>
@@ -115,12 +115,12 @@
                             </div>
 
                             <div>
-                                <label for="opacity" class="block text-sm font-medium text-neutral-600 mb-1">叠加图片透明度</label>
-                                <input type="range" id="opacity" min="0" max="1" step="0.05" value="1" class="w-full h-2 bg-neutral-200 rounded-lg appearance-none cursor-pointer accent-primary">
+                                <label for="rotation" class="block text-sm font-medium text-neutral-600 mb-1">叠加图片旋转角度</label>
+                                <input type="range" id="rotation" min="0" max="360" step="1" value="0" class="w-full h-2 bg-neutral-200 rounded-lg appearance-none cursor-pointer accent-primary">
                                 <div class="flex justify-between text-xs text-neutral-500 mt-1">
-                                    <span>透明</span>
-                                    <span id="opacity-value">100%</span>
-                                    <span>不透明</span>
+                                    <span>0°</span>
+                                    <span id="rotation-value">0°</span>
+                                    <span>360°</span>
                                 </div>
                             </div>
 
@@ -233,39 +233,39 @@
 
         // 图片B的32个默认配置链接
         const imageBUrls = [
-        "https://img.jx3box.com/image/xf/10081.png",
-        "https://img.jx3box.com/image/xf/10080.png",
-        "https://img.jx3box.com/image/xf/10021.png",
-        "https://img.jx3box.com/image/xf/10028.png",
-        "https://img.jx3box.com/image/xf/10175.png",
-        "https://img.jx3box.com/image/xf/10176.png",
-        "https://img.jx3box.com/image/xf/10447.png",
-        "https://img.jx3box.com/image/xf/10448.png",
-        "https://img.jx3box.com/image/xf/10627.png",
-        "https://img.jx3box.com/image/xf/10626.png",
-        "https://img.jx3box.com/image/xf/10026.png",
-        "https://img.jx3box.com/image/xf/10062.png",
-        "https://img.jx3box.com/image/xf/10003.png",
-        "https://img.jx3box.com/image/xf/10002.png",
-        "https://img.jx3box.com/image/xf/10242.png",
-        "https://img.jx3box.com/image/xf/10243.png",
-        "https://img.jx3box.com/image/xf/10390.png",
-        "https://img.jx3box.com/image/xf/10389.png",
-        "https://img.jx3box.com/image/xf/10014.png",
-        "https://img.jx3box.com/image/xf/10015.png",
-        "https://img.jx3box.com/image/xf/10225.png",
-        "https://img.jx3box.com/image/xf/10224.png",
-        "https://img.jx3box.com/image/xf/10144.png",
-        "https://img.jx3box.com/image/xf/10268.png",
-        "https://img.jx3box.com/image/xf/10464.png",
-        "https://img.jx3box.com/image/xf/10533.png",
-        "https://img.jx3box.com/image/xf/10585.png",
-        "https://img.jx3box.com/image/xf/10615.png",
-        "https://img.jx3box.com/image/xf/10698.png",
-        "https://img.jx3box.com/image/xf/10756.png",
-        "https://img.jx3box.com/image/xf/10786.png",
-        "https://img.jx3box.com/image/xf/0.png"
-    ];
+            "https://img.jx3box.com/image/xf/10081.png",
+            "https://img.jx3box.com/image/xf/10080.png",
+            "https://img.jx3box.com/image/xf/10021.png",
+            "https://img.jx3box.com/image/xf/10028.png",
+            "https://img.jx3box.com/image/xf/10175.png",
+            "https://img.jx3box.com/image/xf/10176.png",
+            "https://img.jx3box.com/image/xf/10447.png",
+            "https://img.jx3box.com/image/xf/10448.png",
+            "https://img.jx3box.com/image/xf/10627.png",
+            "https://img.jx3box.com/image/xf/10626.png",
+            "https://img.jx3box.com/image/xf/10026.png",
+            "https://img.jx3box.com/image/xf/10062.png",
+            "https://img.jx3box.com/image/xf/10003.png",
+            "https://img.jx3box.com/image/xf/10002.png",
+            "https://img.jx3box.com/image/xf/10242.png",
+            "https://img.jx3box.com/image/xf/10243.png",
+            "https://img.jx3box.com/image/xf/10390.png",
+            "https://img.jx3box.com/image/xf/10389.png",
+            "https://img.jx3box.com/image/xf/10014.png",
+            "https://img.jx3box.com/image/xf/10015.png",
+            "https://img.jx3box.com/image/xf/10225.png",
+            "https://img.jx3box.com/image/xf/10224.png",
+            "https://img.jx3box.com/image/xf/10144.png",
+            "https://img.jx3box.com/image/xf/10268.png",
+            "https://img.jx3box.com/image/xf/10464.png",
+            "https://img.jx3box.com/image/xf/10533.png",
+            "https://img.jx3box.com/image/xf/10585.png",
+            "https://img.jx3box.com/image/xf/10615.png",
+            "https://img.jx3box.com/image/xf/10698.png",
+            "https://img.jx3box.com/image/xf/10756.png",
+            "https://img.jx3box.com/image/xf/10786.png",
+            "https://img.jx3box.com/image/xf/0.png"
+        ];
 
         let canvas = null;
         let ctx = null;
@@ -274,7 +274,7 @@
         let placementX = 0;
         let placementY = 0;
         let scale = 1;
-        let opacity = 1;
+        let rotation = 0;
         let isDragging = false;
         let dragOffsetX = 0;
         let dragOffsetY = 0;
@@ -318,7 +318,7 @@
 
             // 调整选项
             document.getElementById('scale').addEventListener('input', updateScale);
-            document.getElementById('opacity').addEventListener('input', updateOpacity);
+            document.getElementById('rotation').addEventListener('input', updateRotation);
             document.getElementById('reset-position').addEventListener('click', resetPosition);
 
             // 生成按钮
@@ -517,12 +517,12 @@
             drawCanvas();
         }
 
-        // 更新透明度
-        function updateOpacity() {
+        // 更新旋转角度
+        function updateRotation() {
             if (!imageB) return;
 
-            opacity = parseFloat(this.value);
-            document.getElementById('opacity-value').textContent = `${Math.round(opacity * 100)}%`;
+            rotation = parseFloat(this.value);
+            document.getElementById('rotation-value').textContent = `${rotation}°`;
 
             // 绘制画布
             drawCanvas();
@@ -535,6 +535,9 @@
             // 默认放置在画布中心
             placementX = (canvas.width - (imageB.width * scale)) / 2;
             placementY = (canvas.height - (imageB.height * scale)) / 2;
+            rotation = 0;
+            document.getElementById('rotation').value = 0;
+            document.getElementById('rotation-value').textContent = '0°';
 
             // 更新指示器位置
             updateIndicatorPosition();
@@ -565,15 +568,17 @@
 
             // 如果有图片B，绘制图片B
             if (imageB && imageB.complete) {
-                ctx.globalAlpha = opacity;
+                ctx.save();
+                ctx.translate(placementX + imageB.width * scale / 2, placementY + imageB.height * scale / 2);
+                ctx.rotate(rotation * Math.PI / 180);
                 ctx.drawImage(
                     imageB,
-                    placementX,
-                    placementY,
+                    -imageB.width * scale / 2,
+                    -imageB.height * scale / 2,
                     imageB.width * scale,
                     imageB.height * scale
                 );
-                ctx.globalAlpha = 1;
+                ctx.restore();
             }
 
             // 确保指示器在可视区域内
@@ -609,15 +614,17 @@
             resultCtx.drawImage(imageA, 0, 0, resultCanvas.width, resultCanvas.height);
 
             // 绘制图片B
-            resultCtx.globalAlpha = opacity;
+            resultCtx.save();
+            resultCtx.translate(placementX + imageB.width * scale / 2, placementY + imageB.height * scale / 2);
+            resultCtx.rotate(rotation * Math.PI / 180);
             resultCtx.drawImage(
                 imageB,
-                placementX,
-                placementY,
+                -imageB.width * scale / 2,
+                -imageB.height * scale / 2,
                 imageB.width * scale,
                 imageB.height * scale
             );
-            resultCtx.globalAlpha = 1;
+            resultCtx.restore();
 
             // 隐藏加载指示器
             document.getElementById('loading-indicator').classList.add('hidden');
@@ -664,15 +671,17 @@
                     tempCtx.drawImage(imageA, 0, 0, tempCanvas.width, tempCanvas.height);
                     
                     // 绘制当前图片B
-                    tempCtx.globalAlpha = opacity;
+                    tempCtx.save();
+                    tempCtx.translate(placementX + img.width * scale / 2, placementY + img.height * scale / 2);
+                    tempCtx.rotate(rotation * Math.PI / 180);
                     tempCtx.drawImage(
                         img,
-                        placementX,
-                        placementY,
+                        -img.width * scale / 2,
+                        -img.height * scale / 2,
                         img.width * scale,
                         img.height * scale
                     );
-                    tempCtx.globalAlpha = 1;
+                    tempCtx.restore();
                     
                     // 保存结果
                     const resultDataUrl = tempCanvas.toDataURL('image/png');
@@ -851,8 +860,8 @@
             // 重置选项
             document.getElementById('scale').value = 1;
             document.getElementById('scale-value').textContent = '100%';
-            document.getElementById('opacity').value = 1;
-            document.getElementById('opacity-value').textContent = '100%';
+            document.getElementById('rotation').value = 0;
+            document.getElementById('rotation-value').textContent = '0°';
 
             // 隐藏结果区域
             document.getElementById('result-container').classList.add('hidden');
