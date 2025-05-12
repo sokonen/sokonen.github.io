@@ -424,8 +424,10 @@
             if (!imageA || !imageB) return;
 
             const rect = canvas.getBoundingClientRect();
-            const x = event.clientX - rect.left;
-            const y = event.clientY - rect.top;
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const x = (event.clientX - rect.left) * scaleX;
+            const y = (event.clientY - rect.top) * scaleY;
 
             // 设置放置位置
             placementX = x;
@@ -445,9 +447,11 @@
             isDragging = true;
             const rect = canvas.getBoundingClientRect();
             const indicatorRect = indicator.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
 
-            dragOffsetX = event.clientX - indicatorRect.left - rect.left;
-            dragOffsetY = event.clientY - indicatorRect.top - rect.top;
+            dragOffsetX = (event.clientX - indicatorRect.left - rect.left) * scaleX;
+            dragOffsetY = (event.clientY - indicatorRect.top - rect.top) * scaleY;
 
             document.body.style.cursor = 'grabbing';
         }
@@ -457,8 +461,10 @@
             if (!isDragging || !imageB) return;
 
             const rect = canvas.getBoundingClientRect();
-            const x = event.clientX - rect.left - dragOffsetX;
-            const y = event.clientY - rect.top - dragOffsetY;
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const x = (event.clientX - rect.left) * scaleX - dragOffsetX;
+            const y = (event.clientY - rect.top) * scaleY - dragOffsetY;
 
             // 限制在画布内
             placementX = Math.max(0, Math.min(x, canvas.width - indicator.offsetWidth));
