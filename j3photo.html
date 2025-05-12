@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>一键生成剑网三表情包</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#FF7D00',
+                        neutral: {
+                            100: '#F5F7FA',
+                            200: '#E5E6EB',
+                            300: '#C9CDD4',
+                            400: '#86909C',
+                            500: '#4E5969',
+                            600: '#272E3B',
+                            700: '#1D2129',
+                        }
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+           .content-auto {
+                content-visibility: auto;
+            }
+           .backdrop-blur-sm {
+                backdrop-filter: blur(4px);
+            }
+           .transition-transform-opacity {
+                transition-property: transform, opacity;
+            }
+           .scale-hover {
+                @apply hover:scale-105 transition-all duration-300;
+            }
+           .card-shadow {
+                box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.1);
+            }
+           .canvas-container {
+                position: relative;
+                overflow: hidden;
+                background-image: linear-gradient(45deg, #f0f0f0 25%, transparent 25%),
+                    linear-gradient(-45deg, #f0f0f0 25%, transparent 25%),
+                    linear-gradient(45deg, transparent 75%, #f0f0f0 75%),
+                    linear-gradient(-45deg, transparent 75%, #f0f0f0 75%);
+                background-size: 20px 20px;
+                background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+            }
+        }
+    </style>
+</head>
+
+<body class="font-inter bg-neutral-100 min-h-screen flex flex-col">
+    <!-- 主要内容区域 -->
+    <main class="flex-grow container mx-auto px-4 py-8">
+        <div class="max-w-6xl mx-auto">
+            <!-- 操作区域 -->
+            <section class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
+                <!-- 左侧：图片上传区 -->
+                <div class="lg:col-span-1 space-y-6">
+                    <!-- 图片A上传 -->
+                    <div class="bg-white rounded-xl p-6 card-shadow scale-hover">
+                        <h3 class="text-lg font-semibold text-neutral-700 mb-4 flex items-center">
+                            <i class="fa-solid fa-upload text-primary mr-2"></i>
+                            上传背景图片
+                        </h3>
+                        <div class="border-2 border-dashed border-neutral-300 rounded-lg p-8 text-center hover:border-primary transition-colors cursor-pointer" id="drop-area-a">
+                            <input type="file" id="image-a" accept="image/jpeg,image/png,image/gif" class="hidden">
+                            <i class="fa-solid fa-image text-4xl text-neutral-400 mb-4"></i>
+                            <p class="text-neutral-500 mb-2">拖放图片到这里，或</p>
+                            <button class="bg-primary hover:bg-primary/90 text-white py-2 px-4 rounded-lg transition-colors" onclick="document.getElementById('image-a').click()">
+                                选择图片
+                            </button>
+                            <p class="text-neutral-400 text-sm mt-2">支持 JPG、PNG、GIF 格式</p>
+                        </div>
+                        <div id="preview-a-container" class="mt-4 hidden">
+                            <h4 class="text-sm font-medium text-neutral-600 mb-2">预览</h4>
+                            <div class="relative rounded-lg overflow-hidden">
+                                <img id="preview-a" src="" alt="背景图片预览" class="w-full h-auto object-contain max-h-40">
+                                <button id="remove-a" class="absolute top-2 right-2 bg-white/80 hover:bg-white text-neutral-700 rounded-full w-6 h-6 flex items-center justify-center transition-colors">
+                                    <i class="fa-solid fa-times text-sm"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 控制选项 -->
+                    <div class="bg-white rounded-xl p-6 card-shadow">
+                        <h3 class="text-lg font-semibold text-neutral-700 mb-4 flex items-center">
+                            <i class="fa-solid fa-sliders text-primary mr-2"></i>
+                            调整选项
+                        </h3>
+
+                        <div class="space-y-4">
+                            <div>
+                                <label for="scale" class="block text-sm font-medium text-neutral-600 mb-1">叠加图片大小</label>
+                                <input type="range" id="scale" min="0.1" max="2" step="0.05" value="1" class="w-full h-2 bg-neutral-200 rounded-lg appearance-none cursor-pointer accent-primary">
+                                <div class="flex justify-between text-xs text-neutral-500 mt-1">
+                                    <span>更小</span>
+                                    <span id="scale-value">100%</span>
+                                    <span>更大</span>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label for="opacity" class="block text-sm font-medium text-neutral-600 mb-1">叠加图片透明度</label>
+                                <input type="range" id="opacity" min="0" max="1" step="0.05" value="1" class="w-full h-2 bg-neutral-200 rounded-lg appearance-none cursor-pointer accent-primary">
+                                <div class="flex justify-between text-xs text-neutral-500 mt-1">
+                                    <span>透明</span>
+                                    <span id="opacity-value">100%</span>
+                                    <span>不透明</span>
+                                </div>
+                            </div>
+
+                            <button id="reset-position" class="w-full py-2 px-4 bg-neutral-200 hover:bg-neutral-300 text-neutral-700 rounded-lg transition-colors flex items-center justify-center">
+                                <i class="fa-solid fa-refresh mr-2"></i>
+                                重置位置
+                            </button>
+
+                            <button id="generate" class="w-full py-3 px-4 bg-primary hover:bg-primary/90 text-white rounded-lg transition-colors flex items-center justify-center shadow-lg shadow-primary/20">
+                                <i class="fa-solid fa-magic mr-2"></i>
+                                生成示例图片
+                            </button>
+                            
+                            <button id="batch-generate" class="w-full py-3 px-4 bg-secondary hover:bg-secondary/90 text-white rounded-lg transition-colors flex items-center justify-center shadow-lg shadow-secondary/20">
+                                <i class="fa-solid fa-clone mr-2"></i>
+                                生成全职业图片
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 右侧：画布和结果 -->
+                <div class="lg:col-span-2 space-y-6">
+                    <!-- 画布区域 -->
+                    <div class="bg-white rounded-xl p-6 card-shadow">
+                        <h3 class="text-lg font-semibold text-neutral-700 mb-4 flex items-center">
+                            <i class="fa-solid fa-paint-brush text-primary mr-2"></i>
+                            图片合成区域
+                        </h3>
+
+                        <div class="canvas-container rounded-lg overflow-hidden border border-neutral-200" id="canvas-container">
+                            <canvas id="canvas" class="w-full h-auto"></canvas>
+
+                            <!-- 放置位置指示 -->
+                            <div id="placement-indicator" class="absolute hidden border-2 border-dashed border-secondary cursor-move" style="width: 100px; height: 100px;"></div>
+
+                            <!-- 加载指示器 -->
+                            <div id="loading-indicator" class="absolute inset-0 bg-black/50 flex items-center justify-center hidden">
+                                <div class="bg-white p-4 rounded-lg flex items-center">
+                                    <i class="fa-solid fa-spinner fa-spin text-primary mr-2"></i>
+                                    <span class="text-neutral-700">处理中...</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 text-sm text-neutral-500">
+                            <p>提示：上传图片后，点击画布选择叠加图片的放置位置</p>
+                        </div>
+                    </div>
+
+                    <!-- 结果区域 -->
+                    <div id="result-container" class="bg-white rounded-xl p-6 card-shadow hidden">
+                        <h3 class="text-lg font-semibold text-neutral-700 mb-4 flex items-center">
+                            <i class="fa-solid fa-check-circle text-green-500 mr-2"></i>
+                            合成结果
+                        </h3>
+
+                        <div class="canvas-container rounded-lg overflow-hidden border border-neutral-200 mb-4">
+                            <canvas id="result-canvas" class="w-full h-auto"></canvas>
+                        </div>
+
+                        <div class="flex flex-wrap gap-3">
+                            <button id="download" class="py-2 px-4 bg-primary hover:bg-primary/90 text-white rounded-lg transition-colors flex items-center shadow-lg shadow-primary/20">
+                                <i class="fa-solid fa-download mr-2"></i>
+                                下载此图片
+                            </button>
+                            <button id="new-edit" class="py-2 px-4 bg-white hover:bg-neutral-50 text-neutral-700 rounded-lg transition-colors flex items-center border border-neutral-200">
+                                <i class="fa-solid fa-plus mr-2"></i>
+                                重新选择图片
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 批量结果区域 -->
+                    <div id="batch-results-container" class="bg-white rounded-xl p-6 card-shadow hidden">
+                        <h3 class="text-lg font-semibold text-neutral-700 mb-4 flex items-center">
+                            <i class="fa-solid fa-th-large text-primary mr-2"></i>
+                            批量生成结果
+                        </h3>
+
+                        <div class="flex flex-wrap gap-4 mb-4">
+                            <button id="select-all" class="py-2 px-4 bg-primary hover:bg-primary/90 text-white rounded-lg transition-colors flex items-center">
+                                <i class="fa-solid fa-check-square mr-2"></i>
+                                全选
+                            </button>
+                            <button id="deselect-all" class="py-2 px-4 bg-white hover:bg-neutral-50 text-neutral-700 rounded-lg transition-colors flex items-center border border-neutral-200">
+                                <i class="fa-solid fa-square mr-2"></i>
+                                取消全选
+                            </button>
+                            <button id="download-selected" class="py-2 px-4 bg-secondary hover:bg-secondary/90 text-white rounded-lg transition-colors flex items-center">
+                                <i class="fa-solid fa-download mr-2"></i>
+                                下载选中图片
+                            </button>
+                        </div>
+
+                        <div id="batch-results" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <script>
+        // 初始化变量
+        let imageA = null;
+        let imageB = new Image();
+        // 设置crossOrigin属性以允许跨域访问
+        imageB.crossOrigin = 'anonymous';
+        imageB.src = 'https://img.jx3box.com/image/xf/10081.png';
+
+        // 图片B的32个默认配置链接
+        const imageBUrls = [
+        "https://img.jx3box.com/image/xf/10081.png",
+        "https://img.jx3box.com/image/xf/10080.png",
+        "https://img.jx3box.com/image/xf/10021.png",
+        "https://img.jx3box.com/image/xf/10028.png",
+        "https://img.jx3box.com/image/xf/10175.png",
+        "https://img.jx3box.com/image/xf/10176.png",
+        "https://img.jx3box.com/image/xf/10447.png",
+        "https://img.jx3box.com/image/xf/10448.png",
+        "https://img.jx3box.com/image/xf/10627.png",
+        "https://img.jx3box.com/image/xf/10626.png",
+        "https://img.jx3box.com/image/xf/10026.png",
+        "https://img.jx3box.com/image/xf/10062.png",
+        "https://img.jx3box.com/image/xf/10003.png",
+        "https://img.jx3box.com/image/xf/10002.png",
+        "https://img.jx3box.com/image/xf/10242.png",
+        "https://img.jx3box.com/image/xf/10243.png",
+        "https://img.jx3box.com/image/xf/10390.png",
+        "https://img.jx3box.com/image/xf/10389.png",
+        "https://img.jx3box.com/image/xf/10014.png",
+        "https://img.jx3box.com/image/xf/10015.png",
+        "https://img.jx3box.com/image/xf/10225.png",
+        "https://img.jx3box.com/image/xf/10224.png",
+        "https://img.jx3box.com/image/xf/10144.png",
+        "https://img.jx3box.com/image/xf/10268.png",
+        "https://img.jx3box.com/image/xf/10464.png",
+        "https://img.jx3box.com/image/xf/10533.png",
+        "https://img.jx3box.com/image/xf/10585.png",
+        "https://img.jx3box.com/image/xf/10615.png",
+        "https://img.jx3box.com/image/xf/10698.png",
+        "https://img.jx3box.com/image/xf/10756.png",
+        "https://img.jx3box.com/image/xf/10786.png",
+        "https://img.jx3box.com/image/xf/0.png"
+    ];
+
+        let canvas = null;
+        let ctx = null;
+        let resultCanvas = null;
+        let resultCtx = null;
+        let placementX = 0;
+        let placementY = 0;
+        let scale = 1;
+        let opacity = 1;
+        let isDragging = false;
+        let dragOffsetX = 0;
+        let dragOffsetY = 0;
+        let indicator = null;
+        let isLoaded = false;
+        let batchResults = []; // 存储批量生成的结果
+
+        // DOM 加载完成后执行
+        document.addEventListener('DOMContentLoaded', function () {
+            // 获取DOM元素
+            canvas = document.getElementById('canvas');
+            ctx = canvas.getContext('2d');
+            resultCanvas = document.getElementById('result-canvas');
+            // 只有在结果区域显示时才获取resultCanvas的上下文
+            // resultCtx = resultCanvas.getContext('2d');
+
+            indicator = document.getElementById('placement-indicator');
+
+            // 初始化事件监听
+            initEventListeners();
+        });
+
+        // 初始化事件监听
+        function initEventListeners() {
+            // 图片上传事件
+            document.getElementById('image-a').addEventListener('change', handleImageAUpload);
+
+            // 拖放上传
+            setupDragAndDrop('drop-area-a', handleImageAUpload);
+
+            // 移除图片
+            document.getElementById('remove-a').addEventListener('click', removeImageA);
+
+            // 画布点击事件
+            canvas.addEventListener('click', handleCanvasClick);
+
+            // 指示器拖拽
+            indicator.addEventListener('mousedown', startDrag);
+            document.addEventListener('mousemove', drag);
+            document.addEventListener('mouseup', endDrag);
+
+            // 调整选项
+            document.getElementById('scale').addEventListener('input', updateScale);
+            document.getElementById('opacity').addEventListener('input', updateOpacity);
+            document.getElementById('reset-position').addEventListener('click', resetPosition);
+
+            // 生成按钮
+            document.getElementById('generate').addEventListener('click', generateResult);
+            
+            // 批量生成按钮
+            document.getElementById('batch-generate').addEventListener('click', batchGenerate);
+
+            // 下载和分享
+            document.getElementById('download').addEventListener('click', downloadImage);
+            document.getElementById('new-edit').addEventListener('click', resetAll);
+            
+            // 批量结果区域事件
+            document.getElementById('select-all').addEventListener('click', selectAllResults);
+            document.getElementById('deselect-all').addEventListener('click', deselectAllResults);
+            document.getElementById('download-selected').addEventListener('click', downloadSelectedResults);
+        }
+
+        // 设置拖放上传
+        function setupDragAndDrop(elementId, handler) {
+            const dropArea = document.getElementById(elementId);
+
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropArea.addEventListener(eventName, preventDefaults, false);
+            });
+
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropArea.addEventListener(eventName, highlight, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropArea.addEventListener(eventName, unhighlight, false);
+            });
+
+            function highlight() {
+                dropArea.classList.add('border-primary');
+            }
+
+            function unhighlight() {
+                dropArea.classList.remove('border-primary');
+            }
+
+            dropArea.addEventListener('drop', function (e) {
+                const dt = e.dataTransfer;
+                const file = dt.files[0];
+
+                if (file && isImageFile(file)) {
+                    const reader = new FileReader();
+                    reader.onload = function (event) {
+                        const input = document.getElementById(elementId).previousElementSibling;
+                        input.files = dt.files;
+                        handler(event);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            }, false);
+        }
+
+        // 检查文件是否为图片
+        function isImageFile(file) {
+            return file.type.startsWith('image/');
+        }
+
+        // 处理背景图片上传
+        function handleImageAUpload(event) {
+            const file = event.target.files[0];
+            if (!file || !isImageFile(file)) return;
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                imageA = new Image();
+                imageA.onload = function () {
+                    document.getElementById('preview-a').src = e.target.result;
+                    document.getElementById('preview-a-container').classList.remove('hidden');
+
+                    // 如果图片B已经加载，则重置位置
+                    if (imageB.complete) {
+                        resetPosition();
+                    }
+
+                    drawCanvas();
+                };
+                imageA.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // 移除背景图片
+        function removeImageA() {
+            imageA = null;
+            document.getElementById('image-a').value = '';
+            document.getElementById('preview-a-container').classList.add('hidden');
+            drawCanvas();
+        }
+
+        // 处理画布点击
+        function handleCanvasClick(event) {
+            if (!imageA || !imageB) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+
+            // 设置放置位置
+            placementX = x;
+            placementY = y;
+
+            // 更新指示器位置
+            updateIndicatorPosition();
+
+            // 绘制画布
+            drawCanvas();
+        }
+
+        // 开始拖拽
+        function startDrag(event) {
+            if (!imageB) return;
+
+            isDragging = true;
+            const rect = canvas.getBoundingClientRect();
+            const indicatorRect = indicator.getBoundingClientRect();
+
+            dragOffsetX = event.clientX - indicatorRect.left - rect.left;
+            dragOffsetY = event.clientY - indicatorRect.top - rect.top;
+
+            document.body.style.cursor = 'grabbing';
+        }
+
+        // 拖拽中
+        function drag(event) {
+            if (!isDragging || !imageB) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const x = event.clientX - rect.left - dragOffsetX;
+            const y = event.clientY - rect.top - dragOffsetY;
+
+            // 限制在画布内
+            placementX = Math.max(0, Math.min(x, canvas.width - indicator.offsetWidth));
+            placementY = Math.max(0, Math.min(y, canvas.height - indicator.offsetHeight));
+
+            // 更新指示器位置
+            updateIndicatorPosition();
+
+            // 绘制画布
+            drawCanvas();
+        }
+
+        // 结束拖拽
+        function endDrag() {
+            isDragging = false;
+            document.body.style.cursor = 'default';
+        }
+
+        // 更新指示器大小
+        function updateIndicatorSize() {
+            if (!imageB) return;
+
+            const width = imageB.width * scale;
+            const height = imageB.height * scale;
+
+            indicator.style.width = `${width}px`;
+            indicator.style.height = `${height}px`;
+        }
+
+        // 更新指示器位置
+        function updateIndicatorPosition() {
+            if (!imageB) return;
+
+            indicator.style.left = `${placementX}px`;
+            indicator.style.top = `${placementY}px`;
+            indicator.classList.remove('hidden');
+        }
+
+        // 更新缩放
+        function updateScale() {
+            if (!imageB) return;
+
+            scale = parseFloat(this.value);
+            document.getElementById('scale-value').textContent = `${Math.round(scale * 100)}%`;
+
+            // 更新指示器大小
+            updateIndicatorSize();
+
+            // 绘制画布
+            drawCanvas();
+        }
+
+        // 更新透明度
+        function updateOpacity() {
+            if (!imageB) return;
+
+            opacity = parseFloat(this.value);
+            document.getElementById('opacity-value').textContent = `${Math.round(opacity * 100)}%`;
+
+            // 绘制画布
+            drawCanvas();
+        }
+
+        // 重置位置
+        function resetPosition() {
+            if (!imageA || !imageB) return;
+
+            // 默认放置在画布中心
+            placementX = (canvas.width - (imageB.width * scale)) / 2;
+            placementY = (canvas.height - (imageB.height * scale)) / 2;
+
+            // 更新指示器位置
+            updateIndicatorPosition();
+
+            // 绘制画布
+            drawCanvas();
+        }
+
+        // 绘制画布
+        function drawCanvas() {
+            if (!imageA) {
+                // 清空画布
+                canvas.width = 800;
+                canvas.height = 600;
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                return;
+            }
+
+            // 设置画布大小为图片A的大小
+            canvas.width = imageA.width;
+            canvas.height = imageA.height;
+
+            // 清空画布
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 绘制图片A
+            ctx.drawImage(imageA, 0, 0, canvas.width, canvas.height);
+
+            // 如果有图片B，绘制图片B
+            if (imageB && imageB.complete) {
+                ctx.globalAlpha = opacity;
+                ctx.drawImage(
+                    imageB,
+                    placementX,
+                    placementY,
+                    imageB.width * scale,
+                    imageB.height * scale
+                );
+                ctx.globalAlpha = 1;
+            }
+
+            // 确保指示器在可视区域内
+            if (isLoaded && imageB && imageB.complete) {
+                updateIndicatorPosition();
+            }
+
+            isLoaded = true;
+        }
+
+        // 生成结果
+        function generateResult() {
+            if (!imageA || !imageB || !imageB.complete) {
+                alert('请上传背景图片后再生成合成图片');
+                return;
+            }
+
+            // 显示加载指示器
+            document.getElementById('loading-indicator').classList.remove('hidden');
+
+            // 获取结果画布上下文
+            resultCanvas = document.getElementById('result-canvas');
+            resultCtx = resultCanvas.getContext('2d');
+
+            // 设置结果画布大小
+            resultCanvas.width = imageA.width;
+            resultCanvas.height = imageA.height;
+
+            // 清空结果画布
+            resultCtx.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
+
+            // 绘制图片A
+            resultCtx.drawImage(imageA, 0, 0, resultCanvas.width, resultCanvas.height);
+
+            // 绘制图片B
+            resultCtx.globalAlpha = opacity;
+            resultCtx.drawImage(
+                imageB,
+                placementX,
+                placementY,
+                imageB.width * scale,
+                imageB.height * scale
+            );
+            resultCtx.globalAlpha = 1;
+
+            // 隐藏加载指示器
+            document.getElementById('loading-indicator').classList.add('hidden');
+
+            // 显示结果区域
+            document.getElementById('result-container').classList.remove('hidden');
+            document.getElementById('batch-results-container').classList.add('hidden');
+
+            // 平滑滚动到结果区域
+            document.getElementById('result-container').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // 批量生成结果
+        function batchGenerate() {
+            if (!imageA) {
+                alert('请上传背景图片后再批量生成图片');
+                return;
+            }
+
+            // 显示加载指示器
+            document.getElementById('loading-indicator').classList.remove('hidden');
+            
+            // 清空之前的批量结果
+            batchResults = [];
+            document.getElementById('batch-results').innerHTML = '';
+            
+            // 创建临时画布用于生成批量结果
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCanvas.width = imageA.width;
+            tempCanvas.height = imageA.height;
+            
+            // 依次处理每个图片B的URL
+            let processedCount = 0;
+            
+            imageBUrls.forEach((url, index) => {
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                img.onload = function() {
+                    // 清空临时画布
+                    tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
+                    
+                    // 绘制图片A
+                    tempCtx.drawImage(imageA, 0, 0, tempCanvas.width, tempCanvas.height);
+                    
+                    // 绘制当前图片B
+                    tempCtx.globalAlpha = opacity;
+                    tempCtx.drawImage(
+                        img,
+                        placementX,
+                        placementY,
+                        img.width * scale,
+                        img.height * scale
+                    );
+                    tempCtx.globalAlpha = 1;
+                    
+                    // 保存结果
+                    const resultDataUrl = tempCanvas.toDataURL('image/png');
+                    batchResults.push({
+                        index: index,
+                        url: url,
+                        dataUrl: resultDataUrl,
+                        selected: true
+                    });
+                    
+                    processedCount++;
+                    
+                    // 所有图片处理完成后
+                    if (processedCount === imageBUrls.length) {
+                        // 隐藏加载指示器
+                        document.getElementById('loading-indicator').classList.add('hidden');
+                        
+                        // 显示批量结果区域
+                        document.getElementById('batch-results-container').classList.remove('hidden');
+                        document.getElementById('result-container').classList.add('hidden');
+                        
+                        // 渲染批量结果
+                        renderBatchResults();
+                        
+                        // 平滑滚动到批量结果区域
+                        document.getElementById('batch-results-container').scrollIntoView({ behavior: 'smooth' });
+                    }
+                };
+                img.onerror = function() {
+                    console.error(`无法加载图片: ${url}`);
+                    processedCount++;
+                    
+                    // 即使有图片加载失败，也继续处理其他图片
+                    if (processedCount === imageBUrls.length) {
+                        document.getElementById('loading-indicator').classList.add('hidden');
+                        document.getElementById('batch-results-container').classList.remove('hidden');
+                        document.getElementById('result-container').classList.add('hidden');
+                        renderBatchResults();
+                        document.getElementById('batch-results-container').scrollIntoView({ behavior: 'smooth' });
+                    }
+                };
+                img.src = url;
+            });
+        }
+        
+        // 渲染批量结果
+        function renderBatchResults() {
+            const container = document.getElementById('batch-results');
+            container.innerHTML = '';
+            
+            batchResults.forEach(result => {
+                const resultCard = document.createElement('div');
+                resultCard.className = 'relative group';
+                
+                // 结果图片
+                resultCard.innerHTML = `
+                    <div class="relative rounded-lg overflow-hidden border border-neutral-200">
+                        <img src="${result.dataUrl}" alt="合成图片 ${result.index + 1}" class="w-full h-auto object-contain aspect-square">
+                        <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <button class="bg-white text-neutral-700 rounded-full w-10 h-10 flex items-center justify-center shadow-lg transform translate-y-4 group-hover:translate-y-0 transition-transform" onclick="downloadSingleResult(${result.index})">
+                                <i class="fa-solid fa-download"></i>
+                            </button>
+                        </div>
+                        <div class="absolute top-2 left-2">
+                            <label class="inline-flex items-center cursor-pointer">
+                                <input type="checkbox" class="sr-only peer" checked="${result.selected}" onchange="toggleResultSelection(${result.index}, this)">
+                                <div class="w-5 h-5 bg-white border border-neutral-300 rounded peer-checked:bg-primary peer-checked:border-primary flex items-center justify-center transition-colors">
+                                    <i class="fa-solid fa-check text-white text-xs opacity-0 peer-checked:opacity-100 transition-opacity"></i>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="mt-2 text-sm text-neutral-500 truncate">图片 ${result.index + 1}</div>
+                `;
+                
+                container.appendChild(resultCard);
+            });
+        }
+        
+        // 切换结果选择状态
+        function toggleResultSelection(index, checkbox) {
+            batchResults[index].selected = checkbox.checked;
+        }
+        
+        // 全选结果
+        function selectAllResults() {
+            batchResults.forEach(result => {
+                result.selected = true;
+            });
+            renderBatchResults();
+        }
+        
+        // 取消全选结果
+        function deselectAllResults() {
+            batchResults.forEach(result => {
+                result.selected = false;
+            });
+            renderBatchResults();
+        }
+        
+        // 下载选中的结果
+        function downloadSelectedResults() {
+            const selectedResults = batchResults.filter(result => result.selected);
+            
+            if (selectedResults.length === 0) {
+                alert('请先选择要下载的图片');
+                return;
+            }
+            
+            // 如果只有一张图片，直接下载
+            if (selectedResults.length === 1) {
+                downloadDataUrl(selectedResults[0].dataUrl, `合成图片_${selectedResults[0].index + 1}.png`);
+                return;
+            }
+            
+            // 多张图片打包下载
+            try {
+                // 检查浏览器是否支持Blob和URL.createObjectURL
+                if (typeof Blob === 'undefined' || typeof URL === 'undefined' || !URL.createObjectURL) {
+                    alert('您的浏览器不支持批量下载多张图片，请单独下载每张图片。');
+                    return;
+                }
+                
+                // 对于多张图片，我们无法直接打包，这里提示用户依次下载
+                selectedResults.forEach((result, i) => {
+                    setTimeout(() => {
+                        downloadDataUrl(result.dataUrl, `合成图片_${result.index + 1}.png`);
+                    }, i * 100); // 添加延迟，避免浏览器阻止多个下载请求
+                });
+            } catch (e) {
+                console.error('下载失败:', e);
+                alert('下载失败，请尝试单独下载每张图片。');
+            }
+        }
+        
+        // 下载单个结果
+        function downloadSingleResult(index) {
+            const result = batchResults[index];
+            downloadDataUrl(result.dataUrl, `合成图片_${result.index + 1}.png`);
+        }
+        
+        // 下载dataURL为文件
+        function downloadDataUrl(dataUrl, filename) {
+            try {
+                const link = document.createElement('a');
+                link.download = filename;
+                link.href = dataUrl;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } catch (e) {
+                console.error('下载失败:', e);
+                alert('由于跨域限制，无法下载使用外部资源的图片。请上传本地图片以获得完整功能。');
+            }
+        }
+
+        // 下载图片
+        function downloadImage() {
+            try {
+                // 尝试获取dataURL
+                const link = document.createElement('a');
+                link.download = '合成图片.png';
+                link.href = resultCanvas.toDataURL('image/png');
+                link.click();
+            } catch (e) {
+                console.error('无法下载图片:', e);
+                alert('由于跨域限制，无法下载使用外部资源的图片。请上传本地图片以获得完整功能。');
+            }
+        }
+
+        // 重置所有
+        function resetAll() {
+            // 移除图片
+            removeImageA();
+
+            // 重置选项
+            document.getElementById('scale').value = 1;
+            document.getElementById('scale-value').textContent = '100%';
+            document.getElementById('opacity').value = 1;
+            document.getElementById('opacity-value').textContent = '100%';
+
+            // 隐藏结果区域
+            document.getElementById('result-container').classList.add('hidden');
+            document.getElementById('batch-results-container').classList.add('hidden');
+
+            // 平滑滚动到顶部
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    </script>
+</body>
+
+</html>
