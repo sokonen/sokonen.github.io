@@ -302,9 +302,6 @@
             // 图片上传事件
             document.getElementById('image-a').addEventListener('change', handleImageAUpload);
 
-            // 拖放上传
-            setupDragAndDrop('drop-area-a', handleImageAUpload);
-
             // 移除图片
             document.getElementById('remove-a').addEventListener('click', removeImageA);
 
@@ -335,51 +332,6 @@
             document.getElementById('select-all').addEventListener('click', selectAllResults);
             document.getElementById('deselect-all').addEventListener('click', deselectAllResults);
             document.getElementById('download-selected').addEventListener('click', downloadSelectedResults);
-        }
-
-        // 设置拖放上传
-        function setupDragAndDrop(elementId, handler) {
-            const dropArea = document.getElementById(elementId);
-
-            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-                dropArea.addEventListener(eventName, preventDefaults, false);
-            });
-
-            function preventDefaults(e) {
-                e.preventDefault();
-                e.stopPropagation();
-            }
-
-            ['dragenter', 'dragover'].forEach(eventName => {
-                dropArea.addEventListener(eventName, highlight, false);
-            });
-
-            ['dragleave', 'drop'].forEach(eventName => {
-                dropArea.addEventListener(eventName, unhighlight, false);
-            });
-
-            function highlight() {
-                dropArea.classList.add('border-primary');
-            }
-
-            function unhighlight() {
-                dropArea.classList.remove('border-primary');
-            }
-
-            dropArea.addEventListener('drop', function (e) {
-                const dt = e.dataTransfer;
-                const file = dt.files[0];
-
-                if (file && isImageFile(file)) {
-                    const reader = new FileReader();
-                    reader.onload = function (event) {
-                        const input = document.getElementById(elementId).previousElementSibling;
-                        input.files = dt.files;
-                        handler(event);
-                    };
-                    reader.readAsDataURL(file);
-                }
-            }, false);
         }
 
         // 检查文件是否为图片
@@ -429,9 +381,9 @@
             const x = (event.clientX - rect.left) * scaleX;
             const y = (event.clientY - rect.top) * scaleY;
 
-            // 设置放置位置
-            placementX = x;
-            placementY = y;
+            // 设置放置位置，使图片B的中间位置位于鼠标点击位置
+            placementX = x - imageB.width * scale / 2;
+            placementY = y - imageB.height * scale / 2;
 
             // 更新指示器位置
             updateIndicatorPosition();
