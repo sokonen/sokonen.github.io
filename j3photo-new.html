@@ -370,7 +370,7 @@
                     isGifA = false;
                     return;
                 }
-                
+
                 const reader = new FileReader();
                 reader.onload = function (e) {
                     const img = new Image();
@@ -756,38 +756,81 @@
         }
 
         // 批量生成结果
-        function batchGenerate() {
-            if ((!imageA && gifFramesA.length === 0)) {
-                alert('请上传背景图片后再批量生成图片');
-                return;
-            }
+function batchGenerate() {
+    if ((!imageA && gifFramesA.length === 0)) {
+        alert('请上传背景图片后再批量生成图片');
+        return;
+    }
 
-            // 显示加载指示器
-            document.getElementById('loading-indicator').classList.remove('hidden');
-            
-            // 清空之前的批量结果
-            batchResults = [];
-            document.getElementById('batch-results').innerHTML = '';
-            
-            // 创建临时画布用于生成批量结果
-            const tempCanvas = document.createElement('canvas');
-            const tempCtx = tempCanvas.getContext('2d');
-            tempCanvas.width = imageA ? imageA.width : new Image().src = gifFramesA[0];
-            tempCanvas.height = imageA ? imageA.height : new Image().src = gifFramesA[0];
-            
-            // 依次处理每个图片B的URL
-            let processedCount = 0;
-            
-            imageBUrls.forEach((url, index) => {
-                const img = new Image();
-                img.crossOrigin = 'anonymous';
-                img.onload = function() {
-                    if (isGifA) {
-                        if (!checkGifLibrary()) {
-                            isGifA = false;
-                            // 继续处理非GIF情况
+    // 显示加载指示器
+    document.getElementById('loading-indicator').classList.remove('hidden');
+
+    // 清空之前的批量结果
+    batchResults = [];
+    document.getElementById('batch-results').innerHTML = '';
+
+    // 创建临时画布用于生成批量结果
+    const tempCanvas = document.createElement('canvas');
+    const tempCtx = tempCanvas.getContext('2d');
+    if (imageA) {
+        tempCanvas.width = imageA.width;
+        tempCanvas.height = imageA.height;
+    } else {
+        const tempImg = new Image();
+        tempImg.src = gifFramesA[0];
+        tempImg.onload = function () {
+            tempCanvas.width = tempImg.width;
+            tempCanvas.height = tempImg.height;
+        };
+    }
+
+    // 依次处理每个图片B的URL
+    let processedCount = 0;
+
+    imageBUrls.forEach((url, index) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = function () {
+            if (isGifA) {
+                if (!checkGifLibrary()) {
+                    isGifA = false;
+                    // 继续处理非GIF情况
+                    tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
+                    tempCtx.drawImage(imageA, 0, 0, tempCanvas.width, tempCanvas.height);
+                    tempCtx.save();
+                    tempCtx.translate(placementX + img.width * scale / 2, placementY + img.height * scale / 2);
+                    tempCtx.rotate(rotation * Math.PI / 180);
+                    tempCtx.drawImage(
+                        img,
+                        -img.width * scale / 2,
+                        -img.height * scale / 2,
+                        img.width * scale,
+                        img.height * scale
+                    );
+                    tempCtx.restore();
+
+                    const resultDataUrl = tempCanvas.toDataURL('image/png');
+                    batchResults.push({
+                        index: index,
+                        url: url,
+                        dataUrl: resultDataUrl,
+                        selected: true
+                    });
+
+                    processedCount++;
+
+                    if (processedCount === imageBUrls.length) {
+                        document.getElementById('loading-indicator').classList.add('hidden');
+                        document.getElementById('batch-results-container').classList.remove('hidden');
+                    }
+                } else {
+                    // 处理 GIF 情况
+                    gifFramesA.forEach(frame => {
+                        const imgFrame = new Image();
+                        imgFrame.src = frame;
+                        imgFrame.onload = function () {
                             tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
-                            tempCtx.drawImage(imageA, 0, 0, tempCanvas.width, tempCanvas.height);
+                            tempCtx.drawImage(imgFrame, 0, 0, tempCanvas.width, tempCanvas.height);
                             tempCtx.save();
                             tempCtx.translate(placementX + img.width * scale / 2, placementY + img.height * scale / 2);
                             tempCtx.rotate(rotation * Math.PI / 180);
@@ -799,7 +842,7 @@
                                 img.height * scale
                             );
                             tempCtx.restore();
-                            
+
                             const resultDataUrl = tempCanvas.toDataURL('image/png');
                             batchResults.push({
                                 index: index,
@@ -807,128 +850,50 @@
                                 dataUrl: resultDataUrl,
                                 selected: true
                             });
-                            
+
                             processedCount++;
-                            
-                            if (processedCount === imageBUrls.length) {
+
+                            if (processedCount === imageBUrls.length * gifFramesA.length) {
                                 document.getElementById('loading-indicator').classList.add('hidden');
                                 document.getElementById('batch-results-container').classList.remove('hidden');
-                                document.getElementById('result-container').classList.add('hidden');
-                                renderBatchResults();
-                                document.getElementById('batch-results-container').scrollIntoView({ behavior: 'smooth' });
                             }
-                            return;
-                        }
-                        
-                        const gif = new GIF({
-                            workers: 2,
-                            quality: 10
-                        });
+                        };
+                    });
+                }
+            } else {
+                tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
+                tempCtx.drawImage(imageA, 0, 0, tempCanvas.width, tempCanvas.height);
+                tempCtx.save();
+                tempCtx.translate(placementX + img.width * scale / 2, placementY + img.height * scale / 2);
+                tempCtx.rotate(rotation * Math.PI / 180);
+                tempCtx.drawImage(
+                    img,
+                    -img.width * scale / 2,
+                    -img.height * scale / 2,
+                    img.width * scale,
+                    img.height * scale
+                );
+                tempCtx.restore();
 
-                        gif.on('finished', function (blob) {
-                            const url = URL.createObjectURL(blob);
-                            batchResults.push({
-                                index: index,
-                                url: url,
-                                dataUrl: url,
-                                selected: true
-                            });
-                            processedCount++;
-                            if (processedCount === imageBUrls.length) {
-                                document.getElementById('loading-indicator').classList.add('hidden');
-                                document.getElementById('batch-results-container').classList.remove('hidden');
-                                document.getElementById('result-container').classList.add('hidden');
-                                renderBatchResults();
-                                document.getElementById('batch-results-container').scrollIntoView({ behavior: 'smooth' });
-                            }
-                        });
+                const resultDataUrl = tempCanvas.toDataURL('image/png');
+                batchResults.push({
+                    index: index,
+                    url: url,
+                    dataUrl: resultDataUrl,
+                    selected: true
+                });
 
-                        gifFramesA.forEach(frame => {
-                            const img = new Image();
-                            img.src = frame;
-                            img.onload = function () {
-                                tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
-                                tempCtx.drawImage(img, 0, 0, tempCanvas.width, tempCanvas.height);
-                                tempCtx.save();
-                                tempCtx.translate(placementX + img.width * scale / 2, placementY + img.height * scale / 2);
-                                tempCtx.rotate(rotation * Math.PI / 180);
-                                tempCtx.drawImage(
-                                    img,
-                                    -img.width * scale / 2,
-                                    -img.height * scale / 2,
-                                    img.width * scale,
-                                    img.height * scale
-                                );
-                                tempCtx.restore();
-                                gif.addFrame(tempCanvas, { copy: true, delay: 100 });
-                            };
-                        });
+                processedCount++;
 
-                        gif.render();
-                    } else {
-                        // 清空临时画布
-                        tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
-                        
-                        // 绘制图片A
-                        tempCtx.drawImage(imageA, 0, 0, tempCanvas.width, tempCanvas.height);
-                        
-                        // 绘制当前图片B
-                        tempCtx.save();
-                        tempCtx.translate(placementX + img.width * scale / 2, placementY + img.height * scale / 2);
-                        tempCtx.rotate(rotation * Math.PI / 180);
-                        tempCtx.drawImage(
-                            img,
-                            -img.width * scale / 2,
-                            -img.height * scale / 2,
-                            img.width * scale,
-                            img.height * scale
-                        );
-                        tempCtx.restore();
-                        
-                        // 保存结果
-                        const resultDataUrl = tempCanvas.toDataURL('image/png');
-                        batchResults.push({
-                            index: index,
-                            url: url,
-                            dataUrl: resultDataUrl,
-                            selected: true
-                        });
-                        
-                        processedCount++;
-                        
-                        // 所有图片处理完成后
-                        if (processedCount === imageBUrls.length) {
-                            // 隐藏加载指示器
-                            document.getElementById('loading-indicator').classList.add('hidden');
-                            
-                            // 显示批量结果区域
-                            document.getElementById('batch-results-container').classList.remove('hidden');
-                            document.getElementById('result-container').classList.add('hidden');
-                            
-                            // 渲染批量结果
-                            renderBatchResults();
-                            
-                            // 平滑滚动到批量结果区域
-                            document.getElementById('batch-results-container').scrollIntoView({ behavior: 'smooth' });
-                        }
-                    }
-                };
-                img.onerror = function() {
-                    console.error(`无法加载图片: ${url}`);
-                    processedCount++;
-                    
-                    // 即使有图片加载失败，也继续处理其他图片
-                    if (processedCount === imageBUrls.length) {
-                        document.getElementById('loading-indicator').classList.add('hidden');
-                        document.getElementById('batch-results-container').classList.remove('hidden');
-                        document.getElementById('result-container').classList.add('hidden');
-                        renderBatchResults();
-                        document.getElementById('batch-results-container').scrollIntoView({ behavior: 'smooth' });
-                    }
-                };
-                img.src = url;
-            });
-        }
+                if (processedCount === imageBUrls.length) {
+                    document.getElementById('loading-indicator').classList.add('hidden');
+                    document.getElementById('batch-results-container').classList.remove('hidden');
+                }
+            }
+        };
+        img.src = url;
+    });
+}
         
         // 渲染批量结果
         function renderBatchResults() {
