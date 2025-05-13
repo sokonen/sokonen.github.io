@@ -7,6 +7,7 @@
     <title>一键生成剑网三表情包</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/gif.js/dist/gif.js"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -124,14 +125,26 @@
                                 </div>
                             </div>
 
+                            <div>
+                                <label for="rotate-icon" class="flex items-center cursor-pointer">
+                                    <input type="checkbox" id="rotate-icon" class="mr-2">
+                                    <span class="text-sm font-medium text-neutral-600">门派图标旋转(生成比较慢耐心等一下)</span>
+                                </label>
+                            </div>
+
                             <button id="reset-position" class="w-full py-2 px-4 bg-neutral-200 hover:bg-neutral-300 text-neutral-700 rounded-lg transition-colors flex items-center justify-center">
                                 <i class="fa-solid fa-refresh mr-2"></i>
                                 重置位置
                             </button>
 
+                            <button id="select-career" class="w-full py-3 px-4 bg-primary hover:bg-primary/90 text-white rounded-lg transition-colors flex items-center justify-center shadow-lg shadow-primary/20">
+                                <i class="fa-solid fa-list mr-2"></i>
+                                选择职业
+                            </button>
+
                             <button id="generate" class="w-full py-3 px-4 bg-primary hover:bg-primary/90 text-white rounded-lg transition-colors flex items-center justify-center shadow-lg shadow-primary/20">
                                 <i class="fa-solid fa-magic mr-2"></i>
-                                生成示例图片
+                                生成当前职业图片(默认冰心)
                             </button>
                             
                             <button id="batch-generate" class="w-full py-3 px-4 bg-secondary hover:bg-secondary/90 text-white rounded-lg transition-colors flex items-center justify-center shadow-lg shadow-secondary/20">
@@ -217,11 +230,22 @@
                         </div>
 
                         <div id="batch-results" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+                        <!-- 进度条 -->
+                        <div id="progress-bar-container" class="hidden h-4 bg-neutral-200 rounded-md overflow-hidden">
+                            <div id="progress-bar" class="h-full bg-primary" style="width: 0%;"></div>
+                        </div>
                     </div>
                 </div>
             </section>
         </div>
     </main>
+
+    <div id="career-selection-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center hidden">
+        <div class="bg-white p-6 rounded-lg max-h-[80vh] overflow-y-auto">
+            <h3 class="text-lg font-semibold text-neutral-700 mb-4">选择职业图片</h3>
+            <div id="career-images" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+        </div>
+    </div>
 
     <script>
         // 初始化变量
@@ -281,6 +305,8 @@
         let indicator = null;
         let isLoaded = false;
         let batchResults = []; // 存储批量生成的结果
+        const careerSelectionModal = document.getElementById('career-selection-modal');
+        const careerImages = document.getElementById('career-images');
 
         // DOM 加载完成后执行
         document.addEventListener('DOMContentLoaded', function () {
@@ -332,6 +358,12 @@
             document.getElementById('select-all').addEventListener('click', selectAllResults);
             document.getElementById('deselect-all').addEventListener('click', deselectAllResults);
             document.getElementById('download-selected').addEventListener('click', downloadSelectedResults);
+
+            // 新增：勾选框事件监听
+            document.getElementById('rotate-icon').addEventListener('change', handleRotateIconChange);
+
+            // 选择职业按钮事件
+            document.getElementById('select-career').addEventListener('click', showCareerSelectionModal);
         }
 
         // 检查文件是否为图片
@@ -541,6 +573,11 @@
             isLoaded = true;
         }
 
+        // 处理勾选框状态变化
+        function handleRotateIconChange() {
+            // 可以在这里添加一些提示信息，例如提示用户重新生成图片
+        }
+
         // 生成结果
         function generateResult() {
             if (!imageA || !imageB || !imageB.complete) {
@@ -548,45 +585,130 @@
                 return;
             }
 
+            const rotateIcon = document.getElementById('rotate-icon').checked;
+
+            if (rotateIcon) {
+                generateGifResult();
+            } else {
+                // 原有的生成静态图片逻辑
+                // 显示加载指示器
+                document.getElementById('loading-indicator').classList.remove('hidden');
+
+                // 获取结果画布上下文
+                resultCanvas = document.getElementById('result-canvas');
+                resultCtx = resultCanvas.getContext('2d');
+
+                // 设置结果画布大小
+                resultCanvas.width = imageA.width;
+                resultCanvas.height = imageA.height;
+
+                // 清空结果画布
+                resultCtx.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
+
+                // 绘制图片A
+                resultCtx.drawImage(imageA, 0, 0, resultCanvas.width, resultCanvas.height);
+
+                // 绘制图片B
+                resultCtx.save();
+                resultCtx.translate(placementX + imageB.width * scale / 2, placementY + imageB.height * scale / 2);
+                resultCtx.rotate(rotation * Math.PI / 180);
+                resultCtx.drawImage(
+                    imageB,
+                    -imageB.width * scale / 2,
+                    -imageB.height * scale / 2,
+                    imageB.width * scale,
+                    imageB.height * scale
+                );
+                resultCtx.restore();
+
+                // 隐藏加载指示器
+                document.getElementById('loading-indicator').classList.add('hidden');
+
+                // 显示结果区域
+                document.getElementById('result-container').classList.remove('hidden');
+                document.getElementById('batch-results-container').classList.add('hidden');
+
+                // 平滑滚动到结果区域
+                document.getElementById('result-container').scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        // 生成 GIF 结果
+        function generateGifResult() {
             // 显示加载指示器
             document.getElementById('loading-indicator').classList.remove('hidden');
 
-            // 获取结果画布上下文
-            resultCanvas = document.getElementById('result-canvas');
-            resultCtx = resultCanvas.getContext('2d');
+            const gif = new GIF({
+                workers: 2,
+                quality: 10
+            });
 
-            // 设置结果画布大小
-            resultCanvas.width = imageA.width;
-            resultCanvas.height = imageA.height;
+            const frames = 36; // 旋转 360 度，36 帧
+            const angleStep = 360 / frames;
 
-            // 清空结果画布
-            resultCtx.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
+            for (let i = 0; i < frames; i++) {
+                const tempCanvas = document.createElement('canvas');
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCanvas.width = imageA.width;
+                tempCanvas.height = imageA.height;
 
-            // 绘制图片A
-            resultCtx.drawImage(imageA, 0, 0, resultCanvas.width, resultCanvas.height);
+                // 绘制图片A
+                tempCtx.drawImage(imageA, 0, 0, tempCanvas.width, tempCanvas.height);
 
-            // 绘制图片B
-            resultCtx.save();
-            resultCtx.translate(placementX + imageB.width * scale / 2, placementY + imageB.height * scale / 2);
-            resultCtx.rotate(rotation * Math.PI / 180);
-            resultCtx.drawImage(
-                imageB,
-                -imageB.width * scale / 2,
-                -imageB.height * scale / 2,
-                imageB.width * scale,
-                imageB.height * scale
-            );
-            resultCtx.restore();
+                // 绘制图片B
+                tempCtx.save();
+                tempCtx.translate(placementX + imageB.width * scale / 2, placementY + imageB.height * scale / 2);
+                tempCtx.rotate((rotation + i * angleStep) * Math.PI / 180);
+                tempCtx.drawImage(
+                    imageB,
+                    -imageB.width * scale / 2,
+                    -imageB.height * scale / 2,
+                    imageB.width * scale,
+                    imageB.height * scale
+                );
+                tempCtx.restore();
 
-            // 隐藏加载指示器
-            document.getElementById('loading-indicator').classList.add('hidden');
+                gif.addFrame(tempCtx, { delay: 50 }); // 每帧延迟 50 毫秒
+            }
 
-            // 显示结果区域
-            document.getElementById('result-container').classList.remove('hidden');
-            document.getElementById('batch-results-container').classList.add('hidden');
+            gif.on('finished', function (blob) {
+                // 隐藏加载指示器
+                document.getElementById('loading-indicator').classList.add('hidden');
 
-            // 平滑滚动到结果区域
-            document.getElementById('result-container').scrollIntoView({ behavior: 'smooth' });
+                // 显示结果区域
+                document.getElementById('result-container').classList.remove('hidden');
+                document.getElementById('batch-results-container').classList.add('hidden');
+
+                // 将 GIF 显示在结果画布上
+                resultCanvas = document.getElementById('result-canvas');
+                resultCanvas.width = imageA.width;
+                resultCanvas.height = imageA.height;
+                const img = new Image();
+                img.src = URL.createObjectURL(blob);
+                img.onload = function () {
+                    resultCtx = resultCanvas.getContext('2d');
+                    resultCtx.drawImage(img, 0, 0, resultCanvas.width, resultCanvas.height);
+                };
+
+                // 修改下载按钮的行为，下载 GIF
+                document.getElementById('download').addEventListener('click', function () {
+                    const link = document.createElement('a');
+                    link.download = '合成图片.gif';
+                    link.href = URL.createObjectURL(blob);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                });
+
+                // 平滑滚动到结果区域
+                document.getElementById('result-container').scrollIntoView({ behavior: 'smooth' });
+            });
+            gif.setOptions({
+                width: imageA.width,
+                height: imageA.height
+            });
+
+            gif.render();
         }
 
         // 批量生成结果
@@ -596,128 +718,212 @@
                 return;
             }
 
-            // 显示加载指示器
+            const rotateIcon = document.getElementById('rotate-icon').checked;
+
+            // 显示加载指示器和进度条
             document.getElementById('loading-indicator').classList.remove('hidden');
-            
+            document.getElementById('progress-bar-container').classList.remove('hidden');
+
             // 清空之前的批量结果
             batchResults = [];
             document.getElementById('batch-results').innerHTML = '';
-            
-            // 创建临时画布用于生成批量结果
-            const tempCanvas = document.createElement('canvas');
-            const tempCtx = tempCanvas.getContext('2d');
-            tempCanvas.width = imageA.width;
-            tempCanvas.height = imageA.height;
-            
+
             // 依次处理每个图片B的URL
             let processedCount = 0;
-            
+            const totalCount = imageBUrls.length;
+
             imageBUrls.forEach((url, index) => {
                 const img = new Image();
                 img.crossOrigin = 'anonymous';
                 img.onload = function() {
-                    // 清空临时画布
-                    tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
-                    
-                    // 绘制图片A
-                    tempCtx.drawImage(imageA, 0, 0, tempCanvas.width, tempCanvas.height);
-                    
-                    // 绘制当前图片B
-                    tempCtx.save();
-                    tempCtx.translate(placementX + img.width * scale / 2, placementY + img.height * scale / 2);
-                    tempCtx.rotate(rotation * Math.PI / 180);
-                    tempCtx.drawImage(
-                        img,
-                        -img.width * scale / 2,
-                        -img.height * scale / 2,
-                        img.width * scale,
-                        img.height * scale
-                    );
-                    tempCtx.restore();
-                    
-                    // 保存结果
-                    const resultDataUrl = tempCanvas.toDataURL('image/png');
-                    batchResults.push({
-                        index: index,
-                        url: url,
-                        dataUrl: resultDataUrl,
-                        selected: true
-                    });
-                    
-                    processedCount++;
-                    
-                    // 所有图片处理完成后
-                    if (processedCount === imageBUrls.length) {
-                        // 隐藏加载指示器
-                        document.getElementById('loading-indicator').classList.add('hidden');
-                        
-                        // 显示批量结果区域
-                        document.getElementById('batch-results-container').classList.remove('hidden');
-                        document.getElementById('result-container').classList.add('hidden');
-                        
-                        // 渲染批量结果
-                        renderBatchResults();
-                        
-                        // 平滑滚动到批量结果区域
-                        document.getElementById('batch-results-container').scrollIntoView({ behavior: 'smooth' });
-                    }
-                };
-                img.onerror = function() {
-                    console.error(`无法加载图片: ${url}`);
-                    processedCount++;
-                    
-                    // 即使有图片加载失败，也继续处理其他图片
-                    if (processedCount === imageBUrls.length) {
-                        document.getElementById('loading-indicator').classList.add('hidden');
-                        document.getElementById('batch-results-container').classList.remove('hidden');
-                        document.getElementById('result-container').classList.add('hidden');
-                        renderBatchResults();
-                        document.getElementById('batch-results-container').scrollIntoView({ behavior: 'smooth' });
+                    if (rotateIcon) {
+                        // 生成 GIF
+                        const gif = new GIF({
+                            workers: 2,
+                            quality: 10
+                        });
+
+                        const frames = 36; // 旋转 360 度，36 帧
+                        const angleStep = 360 / frames;
+
+                        for (let i = 0; i < frames; i++) {
+                            const tempCanvas = document.createElement('canvas');
+                            const tempCtx = tempCanvas.getContext('2d');
+                            tempCanvas.width = imageA.width;
+                            tempCanvas.height = imageA.height;
+
+                            // 绘制图片A
+                            tempCtx.drawImage(imageA, 0, 0, tempCanvas.width, tempCanvas.height);
+
+                            // 绘制图片B
+                            tempCtx.save();
+                            tempCtx.translate(placementX + img.width * scale / 2, placementY + img.height * scale / 2);
+                            tempCtx.rotate((rotation + i * angleStep) * Math.PI / 180);
+                            tempCtx.drawImage(
+                                img,
+                                -img.width * scale / 2,
+                                -img.height * scale / 2,
+                                img.width * scale,
+                                img.height * scale
+                            );
+                            tempCtx.restore();
+
+                            gif.addFrame(tempCtx, { delay: 50 }); // 每帧延迟 50 毫秒
+                        }
+
+                        gif.on('finished', function (blob) {
+                            const resultDataUrl = URL.createObjectURL(blob);
+                            batchResults.push({
+                                index: index,
+                                url: url,
+                                dataUrl: resultDataUrl,
+                                selected: true,
+                                isGif: true
+                            });
+
+                            processedCount++;
+                            updateProgressBar(processedCount, totalCount);
+
+                            // 所有图片处理完成后
+                            if (processedCount === totalCount) {
+                                // 隐藏加载指示器和进度条
+                                document.getElementById('loading-indicator').classList.add('hidden');
+                                document.getElementById('progress-bar-container').classList.add('hidden');
+
+                                // 显示批量结果区域
+                                document.getElementById('batch-results-container').classList.remove('hidden');
+                                document.getElementById('result-container').classList.add('hidden');
+
+                                // 渲染批量结果
+                                renderBatchResults();
+
+                                // 平滑滚动到批量结果区域
+                                document.getElementById('batch-results-container').scrollIntoView({ behavior: 'smooth' });
+                            }
+                        });
+
+                        gif.setOptions({
+                            width: imageA.width,
+                            height: imageA.height
+                        });
+
+                        gif.render();
+                    } else {
+                        // 生成静态图片
+                        const tempCanvas = document.createElement('canvas');
+                        const tempCtx = tempCanvas.getContext('2d');
+                        tempCanvas.width = imageA.width;
+                        tempCanvas.height = imageA.height;
+
+                        // 清空临时画布
+                        tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
+
+                        // 绘制图片A
+                        tempCtx.drawImage(imageA, 0, 0, tempCanvas.width, tempCanvas.height);
+
+                        // 绘制当前图片B
+                        tempCtx.save();
+                        tempCtx.translate(placementX + img.width * scale / 2, placementY + img.height * scale / 2);
+                        tempCtx.rotate(rotation * Math.PI / 180);
+                        tempCtx.drawImage(
+                            img,
+                            -img.width * scale / 2,
+                            -img.height * scale / 2,
+                            img.width * scale,
+                            img.height * scale
+                        );
+                        tempCtx.restore();
+
+                        // 保存结果
+                        const resultDataUrl = tempCanvas.toDataURL('image/png');
+                        batchResults.push({
+                            index: index,
+                            url: url,
+                            dataUrl: resultDataUrl,
+                            selected: true,
+                            isGif: false
+                        });
+
+                        processedCount++;
+                        updateProgressBar(processedCount, totalCount);
+
+                        // 所有图片处理完成后
+                        if (processedCount === totalCount) {
+                            // 隐藏加载指示器和进度条
+                            document.getElementById('loading-indicator').classList.add('hidden');
+                            document.getElementById('progress-bar-container').classList.add('hidden');
+
+                            // 显示批量结果区域
+                            document.getElementById('batch-results-container').classList.remove('hidden');
+                            document.getElementById('result-container').classList.add('hidden');
+
+                            // 渲染批量结果
+                            renderBatchResults();
+
+                            // 平滑滚动到批量结果区域
+                            document.getElementById('batch-results-container').scrollIntoView({ behavior: 'smooth' });
+                        }
                     }
                 };
                 img.src = url;
             });
         }
-        
+
+        // 更新进度条
+        function updateProgressBar(processedCount, totalCount) {
+            const progressBar = document.getElementById('progress-bar');
+            const percentage = (processedCount / totalCount) * 100;
+            progressBar.style.width = `${percentage}%`;
+        }
+
         // 渲染批量结果
         function renderBatchResults() {
-            const container = document.getElementById('batch-results');
-            container.innerHTML = '';
-            
-            batchResults.forEach(result => {
-                const resultCard = document.createElement('div');
-                resultCard.className = 'relative group';
-                
-                // 结果图片
-                resultCard.innerHTML = `
-                    <div class="relative rounded-lg overflow-hidden border border-neutral-200">
-                        <img src="${result.dataUrl}" alt="合成图片 ${result.index + 1}" class="w-full h-auto object-contain aspect-square">
-                        <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                            <button class="bg-white text-neutral-700 rounded-full w-10 h-10 flex items-center justify-center shadow-lg transform translate-y-4 group-hover:translate-y-0 transition-transform" onclick="downloadSingleResult(${result.index})">
-                                <i class="fa-solid fa-download"></i>
-                            </button>
-                        </div>
-                        <div class="absolute top-2 left-2">
-                            <label class="inline-flex items-center cursor-pointer">
-                                <input type="checkbox" class="sr-only peer" checked="${result.selected}" onchange="toggleResultSelection(${result.index}, this)">
-                                <div class="w-5 h-5 bg-white border border-neutral-300 rounded peer-checked:bg-primary peer-checked:border-primary flex items-center justify-center transition-colors">
-                                    <i class="fa-solid fa-check text-white text-xs opacity-0 peer-checked:opacity-100 transition-opacity"></i>
-                                </div>
-                            </label>
-                        </div>
-                    </div>
-                    <div class="mt-2 text-sm text-neutral-500 truncate">图片 ${result.index + 1}</div>
-                `;
-                
-                container.appendChild(resultCard);
+            const batchResultsContainer = document.getElementById('batch-results');
+            batchResultsContainer.innerHTML = '';
+
+            batchResults.forEach((result) => {
+                const resultDiv = document.createElement('div');
+                resultDiv.classList.add('relative', 'rounded-lg', 'overflow-hidden', 'border', 'border-neutral-200');
+
+                const img = new Image();
+                img.src = result.dataUrl;
+                img.classList.add('w-full', 'h-auto', 'object-cover');
+                resultDiv.appendChild(img);
+
+                // 添加选择框
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.checked = result.selected;
+                checkbox.classList.add('absolute', 'top-2', 'left-2', 'z-10');
+                checkbox.addEventListener('change', () => {
+                    result.selected = checkbox.checked;
+                });
+                resultDiv.appendChild(checkbox);
+
+                // 添加下载按钮
+                const downloadButton = document.createElement('button');
+                downloadButton.classList.add('absolute', 'bottom-2', 'right-2', 'bg-primary', 'hover:bg-primary/90', 'text-white', 'py-1', 'px-2', 'rounded-md', 'text-xs', 'flex', 'items-center', 'justify-center', 'z-10');
+                downloadButton.innerHTML = '<i class="fa-solid fa-download mr-1"></i> 下载';
+                downloadButton.addEventListener('click', () => {
+                    const link = document.createElement('a');
+                    link.download = result.isGif ? `合成图片_${result.index}.gif` : `合成图片_${result.index}.png`;
+                    link.href = result.dataUrl;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                });
+                resultDiv.appendChild(downloadButton);
+                // 为图片添加点击事件监听器
+                img.addEventListener('click', () => {
+                    result.selected = !result.selected;
+                    checkbox.checked = result.selected;
+                });
+
+                batchResultsContainer.appendChild(resultDiv);
             });
         }
-        
-        // 切换结果选择状态
-        function toggleResultSelection(index, checkbox) {
-            batchResults[index].selected = checkbox.checked;
-        }
-        
+
+
         // 全选结果
         function selectAllResults() {
             batchResults.forEach(result => {
@@ -725,7 +931,7 @@
             });
             renderBatchResults();
         }
-        
+
         // 取消全选结果
         function deselectAllResults() {
             batchResults.forEach(result => {
@@ -733,94 +939,57 @@
             });
             renderBatchResults();
         }
-        
-        // 下载选中的结果
+
+        // 下载选中结果
         function downloadSelectedResults() {
             const selectedResults = batchResults.filter(result => result.selected);
-            
-            if (selectedResults.length === 0) {
-                alert('请先选择要下载的图片');
-                return;
-            }
-            
-            // 如果只有一张图片，直接下载
-            if (selectedResults.length === 1) {
-                downloadDataUrl(selectedResults[0].dataUrl, `合成图片_${selectedResults[0].index + 1}.png`);
-                return;
-            }
-            
-            // 多张图片打包下载
-            try {
-                // 检查浏览器是否支持Blob和URL.createObjectURL
-                if (typeof Blob === 'undefined' || typeof URL === 'undefined' || !URL.createObjectURL) {
-                    alert('您的浏览器不支持批量下载多张图片，请单独下载每张图片。');
-                    return;
-                }
-                
-                // 对于多张图片，我们无法直接打包，这里提示用户依次下载
-                selectedResults.forEach((result, i) => {
-                    setTimeout(() => {
-                        downloadDataUrl(result.dataUrl, `合成图片_${result.index + 1}.png`);
-                    }, i * 100); // 添加延迟，避免浏览器阻止多个下载请求
-                });
-            } catch (e) {
-                console.error('下载失败:', e);
-                alert('下载失败，请尝试单独下载每张图片。');
-            }
-        }
-        
-        // 下载单个结果
-        function downloadSingleResult(index) {
-            const result = batchResults[index];
-            downloadDataUrl(result.dataUrl, `合成图片_${result.index + 1}.png`);
-        }
-        
-        // 下载dataURL为文件
-        function downloadDataUrl(dataUrl, filename) {
-            try {
+            selectedResults.forEach(result => {
                 const link = document.createElement('a');
-                link.download = filename;
-                link.href = dataUrl;
+                link.download = `合成图片_${result.index}.${result.isGif ? 'gif' : 'png'}`;
+                link.href = result.dataUrl;
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
-            } catch (e) {
-                console.error('下载失败:', e);
-                alert('由于跨域限制，无法下载使用外部资源的图片。请上传本地图片以获得完整功能。');
-            }
+            });
         }
 
         // 下载图片
         function downloadImage() {
-            try {
-                // 尝试获取dataURL
-                const link = document.createElement('a');
-                link.download = '合成图片.png';
-                link.href = resultCanvas.toDataURL('image/png');
-                link.click();
-            } catch (e) {
-                console.error('无法下载图片:', e);
-                alert('由于跨域限制，无法下载使用外部资源的图片。请上传本地图片以获得完整功能。');
-            }
+            const link = document.createElement('a');
+            link.download = '合成图片.png';
+            link.href = resultCanvas.toDataURL('image/png');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
 
         // 重置所有
         function resetAll() {
-            // 移除图片
-            removeImageA();
-
-            // 重置选项
-            document.getElementById('scale').value = 1;
-            document.getElementById('scale-value').textContent = '100%';
-            document.getElementById('rotation').value = 0;
-            document.getElementById('rotation-value').textContent = '0°';
-
-            // 隐藏结果区域
+            imageA = null;
+            document.getElementById('image-a').value = '';
+            document.getElementById('preview-a-container').classList.add('hidden');
             document.getElementById('result-container').classList.add('hidden');
             document.getElementById('batch-results-container').classList.add('hidden');
+            drawCanvas();
+        }
 
-            // 平滑滚动到顶部
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+        // 显示选择职业模态框
+        function showCareerSelectionModal() {
+            careerSelectionModal.classList.remove('hidden');
+            careerImages.innerHTML = '';
+
+            imageBUrls.forEach(url => {
+                const img = document.createElement('img');
+                img.src = url;
+                img.alt = '职业图片';
+                img.classList.add('w-full', 'h-auto', 'object-cover', 'cursor-pointer');
+                img.addEventListener('click', () => {
+                    imageB.src = url;
+                    careerSelectionModal.classList.add('hidden');
+                    drawCanvas();
+                });
+                careerImages.appendChild(img);
+            });
         }
     </script>
 </body>
