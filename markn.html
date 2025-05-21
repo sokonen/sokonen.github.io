@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>图片批量标记</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
+  
+  <!-- 配置Tailwind自定义颜色和字体 -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#3B82F6',
+            secondary: '#10B981',
+            neutral: {
+              100: '#F3F4F6',
+              200: '#E5E7EB',
+              700: '#374151',
+              800: '#1F2937',
+              900: '#111827'
+            }
+          },
+          fontFamily: {
+            inter: ['Inter', 'system-ui', 'sans-serif'],
+          },
+        },
+      }
+    }
+  </script>
+  
+  <!-- 自定义工具类 -->
+  <style type="text/tailwindcss">
+    @layer utilities {
+      .content-auto {
+        content-visibility: auto;
+      }
+      .card-shadow {
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      }
+      .transition-all-300 {
+        transition: all 0.3s ease;
+      }
+    }
+  </style>
+</head>
+<body class="font-inter bg-gray-50 text-neutral-800 min-h-screen flex flex-col">
+
+  <!-- 主内容区 -->
+  <main class="flex-grow container mx-auto px-4 py-8">
+    <!-- URL输入区 -->
+    <section class="bg-white rounded-xl p-6 mb-8 card-shadow">
+      <h2 class="text-xl font-semibold mb-4 flex items-center">
+        <i class="fa-solid fa-link mr-2 text-primary"></i>输入图片URL
+      </h2>
+      <div class="mb-4">
+        <label for="image-urls" class="block text-sm font-medium text-neutral-700 mb-2">每行输入一个图片URL</label>
+        <textarea 
+          id="image-urls" 
+          class="w-full h-40 p-3 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all-300"
+          placeholder="例如: https://picsum.photos/200/300"></textarea>
+      </div>
+      <div class="flex flex-wrap gap-3">
+        <button 
+          id="load-images" 
+          class="bg-primary hover:bg-primary/90 text-white font-medium py-2 px-6 rounded-lg transition-all-300 flex items-center">
+          <i class="fa-solid fa-image mr-2"></i>加载图片
+        </button>
+        <button 
+          id="clear-urls" 
+          class="bg-neutral-200 hover:bg-neutral-300 text-neutral-700 font-medium py-2 px-6 rounded-lg transition-all-300 flex items-center">
+          <i class="fa-solid fa-trash mr-2"></i>清空输入
+        </button>
+      </div>
+    </section>
+
+    <!-- 图片大小调节区 -->
+    <section class="bg-white rounded-xl p-6 mb-8 card-shadow">
+      <h2 class="text-xl font-semibold mb-4 flex items-center">
+        <i class="fa-solid fa-sliders mr-2 text-primary"></i>图片大小调节
+      </h2>
+      <div class="flex flex-wrap items-center gap-4">
+        <div class="flex-1 min-w-[280px]">
+          <div class="flex justify-between mb-2">
+            <label for="image-size" class="text-sm font-medium text-neutral-700">图片尺寸</label>
+            <span id="size-value" class="text-sm font-medium text-primary">200x200</span>
+          </div>
+          <input 
+            type="range" 
+            id="image-size" 
+            min="100" 
+            max="400" 
+            step="20" 
+            value="200"
+            class="w-full h-2 bg-neutral-200 rounded-lg appearance-none cursor-pointer accent-primary">
+        </div>
+        <div>
+          <button 
+            id="reset-size" 
+            class="bg-neutral-200 hover:bg-neutral-300 text-neutral-700 font-medium py-2 px-4 rounded-lg transition-all-300 flex items-center">
+            <i class="fa-solid fa-refresh mr-2"></i>重置
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 图片展示区 -->
+    <section class="mb-8">
+      <h2 class="text-xl font-semibold mb-4 flex items-center">
+        <i class="fa-solid fa-thumbtack mr-2 text-primary"></i>图片展示
+        <span id="image-count" class="ml-2 text-sm bg-primary/10 text-primary px-2 py-1 rounded-full">0张图片</span>
+      </h2>
+      <div id="image-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+        <!-- 图片将被动态添加到这里 -->
+        <div class="col-span-full text-center py-16 text-neutral-500">
+          <i class="fa-solid fa-image text-5xl mb-4 opacity-30"></i>
+          <p class="mt-2">请输入图片URL并点击"加载图片"按钮</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 已标记图片区 -->
+    <section class="bg-white rounded-xl p-6 card-shadow">
+      <h2 class="text-xl font-semibold mb-4 flex items-center">
+        <i class="fa-solid fa-bookmark mr-2 text-secondary"></i>已标记的图片
+        <span id="marked-count" class="ml-2 text-sm bg-secondary/10 text-secondary px-2 py-1 rounded-full">0张图片</span>
+      </h2>
+      <div class="mb-4">
+        <div class="flex justify-between items-center mb-2">
+          <label class="block text-sm font-medium text-neutral-700">已标记的图片URL</label>
+          <button 
+            id="copy-all" 
+            class="bg-secondary hover:bg-secondary/90 text-white text-sm font-medium py-1.5 px-4 rounded-lg transition-all-300 flex items-center">
+            <i class="fa-solid fa-copy mr-2"></i>复制全部
+          </button>
+        </div>
+        <div id="marked-urls-container" class="relative">
+          <textarea 
+            id="marked-urls" 
+            class="w-full h-32 p-3 border border-neutral-200 rounded-lg bg-neutral-50 focus:ring-2 focus:ring-secondary/50 focus:border-secondary transition-all-300"
+            readonly placeholder="标记的图片URL将显示在这里"></textarea>
+          <div id="copy-toast" class="hidden absolute top-3 right-3 bg-green-500 text-white px-3 py-1 rounded-md text-sm shadow-lg">
+            已复制!
+          </div>
+        </div>
+      </div>
+      <div id="marked-images" class="flex flex-wrap gap-3 pt-4 border-t border-neutral-100">
+        <!-- 已标记的图片将被动态添加到这里 -->
+        <div class="w-full text-center py-6 text-neutral-500">
+          <p>暂无标记的图片</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- 加载动画 -->
+  <div id="loading-overlay" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white p-6 rounded-xl text-center">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+      <p class="font-medium text-neutral-800">正在加载图片...</p>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // DOM元素
+      const textarea = document.getElementById('image-urls');
+      const loadButton = document.getElementById('load-images');
+      const clearButton = document.getElementById('clear-urls');
+      const imageContainer = document.getElementById('image-container');
+      const imageCount = document.getElementById('image-count');
+      const imageSizeSlider = document.getElementById('image-size');
+      const sizeValue = document.getElementById('size-value');
+      const resetSizeButton = document.getElementById('reset-size');
+      const markedUrlsTextarea = document.getElementById('marked-urls');
+      const markedImagesContainer = document.getElementById('marked-images');
+      const markedCount = document.getElementById('marked-count');
+      const copyAllButton = document.getElementById('copy-all');
+      const copyToast = document.getElementById('copy-toast');
+      const loadingOverlay = document.getElementById('loading-overlay');
+      const themeToggle = document.getElementById('theme-toggle');
+      
+      // 状态管理
+      let markedImages = new Set();
+      let currentImageSize = 200;
+      let darkMode = false;
+      
+      // 工具函数
+      const debounce = (fn, delay) => {
+        let timeout;
+        return function() {
+          const context = this;
+          const args = arguments;
+          clearTimeout(timeout);
+          timeout = setTimeout(() => fn.apply(context, args), delay);
+        };
+      };
+      
+      // 主题切换
+      themeToggle.addEventListener('click', function() {
+        darkMode = !darkMode;
+        document.body.classList.toggle('bg-neutral-900', darkMode);
+        document.body.classList.toggle('text-white', darkMode);
+        document.body.classList.toggle('bg-gray-50', !darkMode);
+        document.body.classList.toggle('text-neutral-800', !darkMode);
+        
+        // 更新图标
+        const icon = themeToggle.querySelector('i');
+        if (darkMode) {
+          icon.classList.remove('fa-regular', 'fa-moon');
+          icon.classList.add('fa-regular', 'fa-sun');
+        } else {
+          icon.classList.remove('fa-regular', 'fa-sun');
+          icon.classList.add('fa-regular', 'fa-moon');
+        }
+        
+        // 更新卡片背景
+        const cards = document.querySelectorAll('.bg-white');
+        cards.forEach(card => {
+          card.classList.toggle('bg-neutral-800', darkMode);
+          card.classList.toggle('bg-white', !darkMode);
+        });
+        
+        // 更新输入框背景
+        const textareas = document.querySelectorAll('textarea');
+        textareas.forEach(ta => {
+          ta.classList.toggle('bg-neutral-700', darkMode);
+          ta.classList.toggle('bg-neutral-50', !darkMode);
+          ta.classList.toggle('text-white', darkMode);
+          ta.classList.toggle('text-neutral-800', !darkMode);
+          ta.classList.toggle('border-neutral-600', darkMode);
+          ta.classList.toggle('border-neutral-200', !darkMode);
+        });
+      });
+      
+      // 加载图片
+      loadButton.addEventListener('click', function() {
+        const urls = textarea.value.split('\n')
+          .map(url => url.trim())
+          .filter(url => url);
+          
+        if (urls.length === 0) {
+          alert('请输入至少一个图片URL');
+          return;
+        }
+        
+        // 显示加载动画
+        loadingOverlay.classList.remove('hidden');
+        
+        // 使用setTimeout模拟网络延迟，实际使用时可移除
+        setTimeout(() => {
+          displayImages(urls);
+          loadingOverlay.classList.add('hidden');
+        }, 800);
+      });
+      
+      // 清空输入
+      clearButton.addEventListener('click', function() {
+        textarea.value = '';
+        textarea.focus();
+      });
+      
+      // 调整图片大小
+      imageSizeSlider.addEventListener('input', debounce(function() {
+        currentImageSize = parseInt(this.value);
+        sizeValue.textContent = `${currentImageSize}x${currentImageSize}`;
+        updateImageSizes();
+      }, 100));
+      
+      // 重置图片大小
+      resetSizeButton.addEventListener('click', function() {
+        imageSizeSlider.value = 200;
+        currentImageSize = 200;
+        sizeValue.textContent = `${currentImageSize}x${currentImageSize}`;
+        updateImageSizes();
+      });
+      
+      // 复制所有URL
+      copyAllButton.addEventListener('click', function() {
+        if (markedImages.size === 0) {
+          alert('没有标记的图片URL可复制');
+          return;
+        }
+        
+        markedUrlsTextarea.select();
+        document.execCommand('copy');
+        
+        // 显示复制成功提示
+        copyToast.classList.remove('hidden');
+        setTimeout(() => {
+          copyToast.classList.add('hidden');
+        }, 2000);
+      });
+      
+      // 显示图片
+      function displayImages(urls) {
+        // 清空当前图片
+        imageContainer.innerHTML = '';
+        
+        // 显示新图片
+        urls.forEach(url => {
+          const imageCard = createImageCard(url);
+          imageContainer.appendChild(imageCard);
+        });
+        
+        // 更新图片计数
+        imageCount.textContent = `${urls.length}张图片`;
+        
+        // 滚动到图片区域
+        imageContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+      
+      // 创建图片卡片
+      function createImageCard(url) {
+        const card = document.createElement('div');
+        card.className = 'relative group';
+        
+        const isMarked = markedImages.has(url);
+        
+        card.innerHTML = `
+          <div class="image-card bg-white rounded-lg overflow-hidden shadow-sm border border-neutral-200 transition-all duration-300 ${isMarked ? 'ring-2 ring-secondary ring-offset-2' : ''}">
+            <div class="relative w-full h-[${currentImageSize}px] flex items-center justify-center overflow-hidden">
+              <img 
+                src="${url}" 
+                alt="图片" 
+                class="max-w-full max-h-full object-contain"
+                loading="lazy">
+            </div>
+          </div>
+        `;
+        
+        // 添加点击标记事件
+        card.addEventListener('click', function() {
+          toggleMark(url, card);
+        });
+        
+        // 图片加载错误处理
+        const img = card.querySelector('img');
+        img.addEventListener('error', function() {
+          this.src = 'https://picsum.photos/200/200?random=error';
+          this.alt = '图片加载失败';
+        });
+        
+        return card;
+      }
+      
+      // 切换标记状态
+      function toggleMark(url, cardElement) {
+        if (markedImages.has(url)) {
+          markedImages.delete(url);
+          cardElement.querySelector('.image-card').classList.remove('ring-2', 'ring-secondary', 'ring-offset-2');
+        } else {
+          markedImages.add(url);
+          cardElement.querySelector('.image-card').classList.add('ring-2', 'ring-secondary', 'ring-offset-2');
+        }
+        
+        updateMarkedImages();
+      }
+      
+      // 更新已标记图片区域
+      function updateMarkedImages() {
+        // 更新文本区域
+        markedUrlsTextarea.value = Array.from(markedImages).join('\n');
+        
+        // 更新计数
+        markedCount.textContent = `${markedImages.size}张图片`;
+        
+        // 更新预览区域
+        markedImagesContainer.innerHTML = '';
+        
+        if (markedImages.size === 0) {
+          markedImagesContainer.innerHTML = `
+            <div class="w-full text-center py-6 text-neutral-500">
+              <p>暂无标记的图片</p>
+            </div>
+          `;
+          return;
+        }
+        
+        Array.from(markedImages).forEach(url => {
+          const markedImage = document.createElement('div');
+          markedImage.className = 'relative';
+          
+          markedImage.innerHTML = `
+            <div class="bg-white rounded-lg overflow-hidden shadow-sm border border-neutral-200 ring-2 ring-secondary ring-offset-2">
+              <div class="relative w-[100px] h-[100px] flex items-center justify-center overflow-hidden">
+                <img 
+                  src="${url}" 
+                  alt="已标记图片" 
+                  class="max-w-full max-h-full object-contain"
+                  loading="lazy">
+                <button class="absolute top-1 right-1 bg-white/80 hover:bg-white p-1.5 rounded-full shadow-md transition-all-300 remove-mark">
+                  <i class="fa fa-times text-neutral-700"></i>
+                </button>
+              </div>
+            </div>
+          `;
+          
+          // 添加移除标记事件
+          const removeButton = markedImage.querySelector('.remove-mark');
+          removeButton.addEventListener('click', function(e) {
+            e.stopPropagation();
+            markedImages.delete(url);
+            
+            // 更新原图片卡片样式
+            const originalCards = document.querySelectorAll('.image-card');
+            originalCards.forEach(card => {
+              if (card.querySelector('img').src === url) {
+                card.classList.remove('ring-2', 'ring-secondary', 'ring-offset-2');
+              }
+            });
+            
+            updateMarkedImages();
+          });
+          
+          markedImagesContainer.appendChild(markedImage);
+        });
+      }
+      
+      // 更新所有图片大小
+      function updateImageSizes() {
+        const images = document.querySelectorAll('#image-container .relative > div > div:first-child');
+        images.forEach(imgContainer => {
+          imgContainer.style.height = `${currentImageSize}px`;
+        });
+      }
+      
+      // 添加键盘快捷键
+      textarea.addEventListener('keydown', function(e) {
+        // Ctrl+Enter 加载图片
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+          e.preventDefault();
+          loadButton.click();
+        }
+      });
+      
+      // 初始焦点
+      textarea.focus();
+    });
+  </script>
+</body>
+</html>
+    
