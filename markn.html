@@ -197,43 +197,7 @@
           timeout = setTimeout(() => fn.apply(context, args), delay);
         };
       };
-      
-      // 主题切换
-      themeToggle.addEventListener('click', function() {
-        darkMode = !darkMode;
-        document.body.classList.toggle('bg-neutral-900', darkMode);
-        document.body.classList.toggle('text-white', darkMode);
-        document.body.classList.toggle('bg-gray-50', !darkMode);
-        document.body.classList.toggle('text-neutral-800', !darkMode);
-        
-        // 更新图标
-        const icon = themeToggle.querySelector('i');
-        if (darkMode) {
-          icon.classList.remove('fa-regular', 'fa-moon');
-          icon.classList.add('fa-regular', 'fa-sun');
-        } else {
-          icon.classList.remove('fa-regular', 'fa-sun');
-          icon.classList.add('fa-regular', 'fa-moon');
-        }
-        
-        // 更新卡片背景
-        const cards = document.querySelectorAll('.bg-white');
-        cards.forEach(card => {
-          card.classList.toggle('bg-neutral-800', darkMode);
-          card.classList.toggle('bg-white', !darkMode);
-        });
-        
-        // 更新输入框背景
-        const textareas = document.querySelectorAll('textarea');
-        textareas.forEach(ta => {
-          ta.classList.toggle('bg-neutral-700', darkMode);
-          ta.classList.toggle('bg-neutral-50', !darkMode);
-          ta.classList.toggle('text-white', darkMode);
-          ta.classList.toggle('text-neutral-800', !darkMode);
-          ta.classList.toggle('border-neutral-600', darkMode);
-          ta.classList.toggle('border-neutral-200', !darkMode);
-        });
-      });
+    
       
       // 加载图片
       loadButton.addEventListener('click', function() {
