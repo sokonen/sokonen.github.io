@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Z币换算工具</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#3B82F6',
+            secondary: '#10B981',
+            accent: '#F59E0B',
+            neutral: '#1F2937',
+          },
+          fontFamily: {
+            inter: ['Inter', 'system-ui', 'sans-serif'],
+          },
+        },
+      }
+    }
+  </script>
+  
+  <style type="text/tailwindcss">
+    @layer utilities {
+      .content-auto {
+        content-visibility: auto;
+      }
+      .card-shadow {
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      }
+      .input-focus {
+        @apply focus:ring-2 focus:ring-primary/50 focus:border-primary;
+      }
+    }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen font-inter">
+  <div class="container mx-auto px-4 py-12 max-w-3xl">
+    <!-- 标题区域 -->
+    <div class="text-center mb-8">
+      <h1 class="text-[clamp(1.8rem,4vw,2.5rem)] font-bold text-neutral mb-2">Z币换算工具</h1>
+      <p class="text-gray-600">轻松将Z币转换为人民币并计算可购买的饮品数量</p>
+    </div>
+    
+    <!-- 换算卡片 -->
+    <div class="bg-white rounded-xl p-6 md:p-8 card-shadow mb-8 transition-all duration-300 hover:shadow-lg">
+      <!-- 输入区域 -->
+      <div class="grid md:grid-cols-2 gap-6 mb-6">
+        <div class="space-y-2">
+          <label for="zAmount" class="block text-sm font-medium text-gray-700">Z币数量</label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
+              <i class="fa fa-diamond"></i>
+            </span>
+            <input 
+              type="number" 
+              id="zAmount" 
+              class="pl-10 w-full rounded-lg border border-gray-300 py-3 px-4 text-gray-700 input-focus transition-all duration-200"
+              placeholder="输入Z币数量"
+              value="100"
+            >
+          </div>
+        </div>
+        
+        <div class="space-y-2">
+          <label for="customRatio" class="block text-sm font-medium text-gray-700">换算比例</label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
+              <i class="fa fa-exchange"></i>
+            </span>
+            <input 
+              type="number" 
+              id="customRatio" 
+              class="pl-10 w-full rounded-lg border border-gray-300 py-3 px-4 text-gray-700 input-focus transition-all duration-200"
+              placeholder="输入自定义比例"
+              value="841"
+            >
+          </div>
+        </div>
+      </div>
+      
+      <!-- 饮品价格选择 -->
+      <div class="mb-6">
+        <label class="block text-sm font-medium text-gray-700 mb-2">饮品价格</label>
+        <div class="grid grid-cols-3 sm:grid-cols-4 gap-3">
+          <button class="drink-price-btn bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 rounded-lg py-2 px-3 transition-all duration-200 active" data-price="5">
+            <i class="fa fa-coffee mr-1"></i> 5元
+          </button>
+          <button class="drink-price-btn bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-200 rounded-lg py-2 px-3 transition-all duration-200" data-price="8">
+            <i class="fa fa-coffee mr-1"></i> 8元
+          </button>
+          <button class="drink-price-btn bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-200 rounded-lg py-2 px-3 transition-all duration-200" data-price="12">
+            <i class="fa fa-coffee mr-1"></i> 12元
+          </button>
+          <button class="drink-price-btn bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-200 rounded-lg py-2 px-3 transition-all duration-200" data-price="15">
+            <i class="fa fa-coffee mr-1"></i> 15元
+          </button>
+        </div>
+      </div>
+      
+      <!-- 换算按钮 -->
+      <div class="mb-6">
+        <button 
+          id="convertBtn" 
+          class="w-full bg-primary hover:bg-primary/90 text-white font-medium rounded-lg py-3 px-4 transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98]"
+        >
+          <i class="fa fa-calculator mr-2"></i>计算换算结果
+        </button>
+      </div>
+      
+      <!-- 结果区域 -->
+      <div id="resultArea" class="hidden">
+        <div class="bg-gray-50 rounded-lg p-5 border border-gray-200">
+          <h3 class="text-lg font-semibold text-gray-800 mb-4">换算结果</h3>
+          
+          <div class="space-y-3">
+            <div class="flex justify-between items-center pb-3 border-b border-gray-200">
+              <span class="text-gray-600">Z币数量:</span>
+              <span id="resultZ" class="font-medium text-neutral">100 Z</span>
+            </div>
+            
+            <div class="flex justify-between items-center pb-3 border-b border-gray-200">
+              <span class="text-gray-600">换算比例:</span>
+              <span id="resultRatio" class="font-medium text-neutral">100 Z = 841 R</span>
+            </div>
+            
+            <div class="flex justify-between items-center pb-3 border-b border-gray-200">
+              <span class="text-gray-600">人民币价值:</span>
+              <span id="resultRmb" class="font-medium text-primary">841.00 元</span>
+            </div>
+            
+            <div class="flex justify-between items-center">
+              <span class="text-gray-600">可购买饮品:</span>
+              <div class="flex items-center">
+                <span id="resultDrinks" class="font-medium text-secondary mr-2">168.20</span>
+                <span id="resultDrinkPrice" class="text-sm bg-secondary/10 text-secondary rounded px-2 py-1">5元/杯</span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 生成类似图中的一段话 -->
+          <div class="mt-5 pt-4 border-t border-gray-200">
+            <p id="resultSummary" class="text-gray-700 leading-relaxed">
+              100Z，按照841的比例，等于841.00元，等于168.20杯5元的蜜雪冰城柠檬水
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 说明卡片 -->
+    <div class="bg-white rounded-xl p-6 card-shadow">
+      <h3 class="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+        <i class="fa fa-info-circle text-primary mr-2"></i>使用说明
+      </h3>
+      <ul class="space-y-2 text-gray-600">
+        <li class="flex items-start">
+          <i class="fa fa-check-circle text-secondary mt-1 mr-2"></i>
+          <span>输入Z币数量和换算比例（默认841）</span>
+        </li>
+        <li class="flex items-start">
+          <i class="fa fa-check-circle text-secondary mt-1 mr-2"></i>
+          <span>选择或自定义饮品价格</span>
+        </li>
+        <li class="flex items-start">
+          <i class="fa fa-check-circle text-secondary mt-1 mr-2"></i>
+          <span>点击"计算换算结果"按钮获取结果</span>
+        </li>
+        <li class="flex items-start">
+          <i class="fa fa-check-circle text-secondary mt-1 mr-2"></i>
+          <span>结果将显示Z币对应的人民币价值和可购买的饮品数量</span>
+        </li>
+      </ul>
+    </div>
+  </div>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // 获取DOM元素
+      const zAmountInput = document.getElementById('zAmount');
+      const customRatioInput = document.getElementById('customRatio');
+      const convertBtn = document.getElementById('convertBtn');
+      const resultArea = document.getElementById('resultArea');
+      const resultZ = document.getElementById('resultZ');
+      const resultRatio = document.getElementById('resultRatio');
+      const resultRmb = document.getElementById('resultRmb');
+      const resultDrinks = document.getElementById('resultDrinks');
+      const resultDrinkPrice = document.getElementById('resultDrinkPrice');
+      const resultSummary = document.getElementById('resultSummary');
+      const drinkPriceBtns = document.querySelectorAll('.drink-price-btn');
+      
+      let currentDrinkPrice = 5; // 默认饮品价格
+      
+      // 饮品价格按钮点击事件
+      drinkPriceBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+          // 移除所有按钮的激活状态
+          drinkPriceBtns.forEach(b => {
+            b.classList.remove('bg-primary/10', 'text-primary', 'border-primary/30', 'active');
+            b.classList.add('bg-gray-100', 'text-gray-700', 'border-gray-200');
+          });
+          
+          // 添加当前按钮的激活状态
+          this.classList.remove('bg-gray-100', 'text-gray-700', 'border-gray-200');
+          this.classList.add('bg-primary/10', 'text-primary', 'border-primary/30', 'active');
+          
+          // 更新当前饮品价格
+          currentDrinkPrice = parseFloat(this.getAttribute('data-price'));
+        });
+      });
+      
+      // 计算按钮点击事件
+      convertBtn.addEventListener('click', function() {
+        // 获取输入值
+        const zAmount = parseFloat(zAmountInput.value) || 0;
+        const customRatio = parseFloat(customRatioInput.value) || 0;
+        
+        // 计算结果
+        const rmbValue = (zAmount * customRatio) / 100;
+        const drinkCount = rmbValue / currentDrinkPrice;
+        
+        // 更新结果显示
+        resultZ.textContent = `${zAmount.toLocaleString()} Z`;
+        resultRatio.textContent = `100 Z = ${customRatio.toLocaleString()} R`;
+        resultRmb.textContent = `${rmbValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} 元`;
+        resultDrinks.textContent = drinkCount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        resultDrinkPrice.textContent = `${currentDrinkPrice.toLocaleString()}元/杯`;
+        
+        // 根据饮品价格决定使用的名称
+        let drinkName = currentDrinkPrice > 5 ? '奶茶' : '蜜雪冰城柠檬水';
+        
+        // 生成类似图中的一段话
+        resultSummary.textContent = `${zAmount.toLocaleString()}Z，按照${customRatio.toLocaleString()}的比例，等于${rmbValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}元，等于${drinkCount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}杯${currentDrinkPrice.toLocaleString()}元的${drinkName}`;
+        
+        // 显示结果区域
+        resultArea.classList.remove('hidden');
+        resultArea.classList.add('animate-fadeIn');
+        
+        // 添加动画效果
+        resultArea.style.opacity = '0';
+        resultArea.style.transform = 'translateY(10px)';
+        setTimeout(() => {
+          resultArea.style.opacity = '1';
+          resultArea.style.transform = 'translateY(0)';
+          resultArea.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+        }, 10);
+      });
+      
+      // 添加键盘事件 - 按Enter键计算
+      zAmountInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+          convertBtn.click();
+        }
+      });
+      
+      customRatioInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+          convertBtn.click();
+        }
+      });
+      
+      // 初始计算
+      convertBtn.click();
+    });
+  </script>
+</body>
+</html>
+    
