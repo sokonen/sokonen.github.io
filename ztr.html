@@ -126,7 +126,7 @@
             
             <div class="flex justify-between items-center pb-3 border-b border-gray-200">
               <span class="text-gray-600">换算比例:</span>
-              <span id="resultRatio" class="font-medium text-neutral">100 Z = 841 R</span>
+              <span id="resultRatio" class="font-medium text-neutral">10 R = 0.841 Z</span>
             </div>
             
             <div class="flex justify-between items-center pb-3 border-b border-gray-200">
@@ -221,7 +221,7 @@
         const customRatio = parseFloat(customRatioInput.value) || 0;
         
         // 计算结果
-        const rmbValue = (zAmount * customRatio) / 100;
+        const rmbValue = (zAmount * 10000) / customRatio;
         const drinkCount = rmbValue / currentDrinkPrice;
         
         // 更新结果显示
