@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>视频播放管理</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            display: flex;
+            gap: 20px;
+        }
+        .main-content {
+            flex: 2;
+        }
+        .input-section {
+            margin-bottom: 20px;
+        }
+        textarea {
+            width: 100%;
+            height: 100px;
+            margin-bottom: 10px;
+        }
+        .video-container {
+            margin-bottom: 20px;
+        }
+        video {
+            width: 100%;
+            max-height: 400px;
+        }
+        .controls {
+            margin: 10px 0;
+        }
+        .marked-urls {
+            margin-top: 20px;
+            border-top: 1px solid #ccc;
+            padding-top: 20px;
+        }
+        button {
+            padding: 8px 12px;
+            margin-right: 10px;
+            cursor: pointer;
+        }
+        .url-list {
+            flex: 1;
+            border: 1px solid #ccc;
+            padding: 10px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        .url-list-item {
+            padding: 5px;
+            cursor: pointer;
+        }
+        .url-list-item:hover {
+            background-color: #f0f0f0;
+        }
+        .url-list-item.current {
+            background-color: #d4edff;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-content">
+        <div class="input-section">
+            <h2>批量输入视频 URL</h2>
+            <textarea id="videoUrls" placeholder="每行输入一个视频 URL"></textarea>
+            <button id="loadUrls">加载 URL</button>
+            <input type="file" id="folderInput" webkitdirectory directory multiple style="margin-top: 10px;">
+        </div>
+        
+        <div class="video-container">
+            <video id="videoPlayer" controls>
+                <track kind="subtitles" srclang="en" src="" label="English">
+            </video>
+            <div class="controls">
+                <button id="prevVideo">上一个</button>
+                <button id="nextVideo">下一个</button>
+                <button id="markUrl">标记当前 URL</button>
+                <select id="playbackRate">
+                    <option value="0.5">0.5x</option>
+                    <option value="1" selected>1x</option>
+                    <option value="1.5">1.5x</option>
+                    <option value="2">2x</option>
+                </select>
+            </div>
+            <div>当前播放: <span id="currentVideoIndex">-</span></div>
+        </div>
+
+        <div class="marked-urls">
+            <h2>已标记的视频 URL</h2>
+            <ul id="markedList"></ul>
+            <button id="copyUrls">复制所有标记 URL</button>
+        </div>
+    </div>
+    
+    <div class="url-list">
+        <h2>视频列表</h2>
+        <div id="videoUrlList"></div>
+    </div>
+
+    <script>
+        const videoUrls = [];
+        const videoFilesMap = new Map();
+        let currentIndex = -1;
+        const videoPlayer = document.getElementById('videoPlayer');
+        const markedUrls = [];
+        const urlList = document.getElementById('videoUrlList');
+        const currentVideoIndex = document.getElementById('currentVideoIndex');
+        const folderInput = document.getElementById('folderInput');
+
+        document.getElementById('loadUrls').addEventListener('click', () => {
+            const input = document.getElementById('videoUrls').value;
+            const urls = input.split('\n').filter(url => url.trim() !== '');
+            videoUrls.length = 0;
+            videoFilesMap.clear();
+            videoUrls.push(...urls);
+            urls.forEach(url => videoFilesMap.set(url, url));
+            currentIndex = -1;
+            playNextVideo();
+            updateUrlList();
+        });
+
+        // 检测文件是否为 HEVC 编码的 MP4 文件
+        async function isHEVCMp4(file) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const buffer = e.target.result;
+                    const view = new DataView(buffer);
+                    // 检查是否为 MP4 文件
+                    if (view.getUint32(4, false) === 0x66747970) {
+                        // 遍历 box 查找编码信息
+                        for (let i = 8; i < view.byteLength; ) {
+                            const size = view.getUint32(i, false);
+                            const type = view.getUint32(i + 4, false);
+                            if (type === 0x6d6f6f76) break; // moov box
+                            if (type === 0x736b6970) break; // skip box
+                            if (type === 0x6d646174) break; // mdat box
+                            if (type === 0x66747970) {
+                                // 检查编码类型
+                                for (let j = i + 16; j < i + size; j += 4) {
+                                    const brand = view.getUint32(j, false);
+                                    if (brand === 0x68657663) {
+                                        resolve(true);
+                                        return;
+                                    }
+                                }
+                            }
+                            i += size;
+                        }
+                    }
+                    resolve(false);
+                };
+                reader.readAsArrayBuffer(file.slice(0, 4096));
+            });
+        }
+
+        folderInput.addEventListener('change', async (e) => {
+            const files = Array.from(e.target.files);
+            // 优化视频格式列表，确保支持常见 H265 编码文件格式
+            const videoExtensions = ['.mp4', '.webm', '.ogg', '.mov', '.hevc', '.mkv', '.ts'];
+            const videoFiles = files.filter(file => 
+                videoExtensions.some(ext => file.name.toLowerCase().endsWith(ext))
+            );
+            
+            videoUrls.length = 0;
+            videoFilesMap.clear();
+            
+            for (const file of videoFiles) {
+                if (file.name.toLowerCase().endsWith('.mp4')) {
+                    if (await isHEVCMp4(file)) {
+                        console.log(`检测到 H265 编码视频: ${file.name}`);
+                        // 确保 H265 编码的 MP4 文件能被处理
+                    }
+                }
+                const url = URL.createObjectURL(file);
+                console.log(`创建视频 URL: ${url}，文件名: ${file.name}`);
+                videoUrls.push(url);
+                videoFilesMap.set(url, file.name);
+            }
+            
+            currentIndex = -1;
+            playNextVideo();
+            updateUrlList();
+        });
+
+        function playNextVideo() {
+            if (videoUrls.length === 0) return;
+            currentIndex = (currentIndex + 1) % videoUrls.length;
+            const url = videoUrls[currentIndex];
+            console.log(`尝试播放视频: ${videoFilesMap.get(url)}，URL: ${url}`);
+            videoPlayer.src = url;
+            
+            videoPlayer.addEventListener('loadedmetadata', () => {
+                console.log('视频元数据加载完成，视频时长: ', videoPlayer.duration);
+                console.log('视频轨道数量: ', videoPlayer.videoTracks.length);
+                videoPlayer.videoTracks.forEach((track, index) => {
+                    console.log(`视频轨道 ${index}:`, track);
+                });
+                console.log('音频轨道数量: ', videoPlayer.audioTracks.length);
+                videoPlayer.audioTracks.forEach((track, index) => {
+                    console.log(`音频轨道 ${index}:`, track);
+                });
+            });
+
+            videoPlayer.addEventListener('error', () => {
+                console.error('视频播放出错，错误代码: ', videoPlayer.error.code);
+            });
+
+            updateUrlList();
+            updateCurrentIndex();
+        }
+
+        function playPrevVideo() {
+            if (videoUrls.length === 0) return;
+            currentIndex = (currentIndex - 1 + videoUrls.length) % videoUrls.length;
+            const url = videoUrls[currentIndex];
+            console.log(`尝试播放视频: ${videoFilesMap.get(url)}，URL: ${url}`);
+            videoPlayer.src = url;
+
+            videoPlayer.addEventListener('loadedmetadata', () => {
+                console.log('视频元数据加载完成，视频时长: ', videoPlayer.duration);
+                console.log('视频轨道数量: ', videoPlayer.videoTracks.length);
+                videoPlayer.videoTracks.forEach((track, index) => {
+                    console.log(`视频轨道 ${index}:`, track);
+                });
+                console.log('音频轨道数量: ', videoPlayer.audioTracks.length);
+                videoPlayer.audioTracks.forEach((track, index) => {
+                    console.log(`音频轨道 ${index}:`, track);
+                });
+            });
+
+            videoPlayer.addEventListener('error', () => {
+                console.error('视频播放出错，错误代码: ', videoPlayer.error.code);
+            });
+
+            updateUrlList();
+            updateCurrentIndex();
+        }
+
+        document.getElementById('nextVideo').addEventListener('click', () => {
+            playNextVideo();
+            videoPlayer.play();
+        });
+
+        document.getElementById('prevVideo').addEventListener('click', () => {
+            playPrevVideo();
+            videoPlayer.play();
+        });
+
+        document.getElementById('markUrl').addEventListener('click', markCurrentUrl);
+        document.getElementById('copyUrls').addEventListener('click', copyMarkedUrls);
+        document.getElementById('playbackRate').addEventListener('change', (e) => {
+            videoPlayer.playbackRate = e.target.value;
+        });
+
+        function playNextVideo() {
+            if (videoUrls.length === 0) return;
+            currentIndex = (currentIndex + 1) % videoUrls.length;
+            videoPlayer.src = videoUrls[currentIndex];
+            updateUrlList();
+            updateCurrentIndex();
+        }
+
+        function playPrevVideo() {
+            if (videoUrls.length === 0) return;
+            currentIndex = (currentIndex - 1 + videoUrls.length) % videoUrls.length;
+            videoPlayer.src = videoUrls[currentIndex];
+            updateUrlList();
+            updateCurrentIndex();
+        }
+
+        function markCurrentUrl() {
+            if (currentIndex >= 0 && currentIndex < videoUrls.length) {
+                const url = videoUrls[currentIndex];
+                const displayName = videoFilesMap.get(url);
+                if (!markedUrls.includes(displayName)) {
+                    markedUrls.push(displayName);
+                    updateMarkedList();
+                }
+            }
+        }
+
+        function updateMarkedList() {
+            const list = document.getElementById('markedList');
+            list.innerHTML = '';
+            markedUrls.forEach(url => {
+                const li = document.createElement('li');
+                li.textContent = url;
+                list.appendChild(li);
+            });
+        }
+
+        function copyMarkedUrls() {
+            const text = markedUrls.join('\n');
+            navigator.clipboard.writeText(text).then(() => {
+                alert('已复制所有标记的 URL');
+            }).catch(err => {
+                console.error('复制失败: ', err);
+            });
+        }
+
+        function updateUrlList() {
+            urlList.innerHTML = '';
+            videoUrls.forEach((url, index) => {
+                const item = document.createElement('div');
+                item.className = `url-list-item ${index === currentIndex ? 'current' : ''}`;
+                const displayName = videoFilesMap.get(url);
+                item.textContent = `${index + 1}. ${displayName}`;
+                item.addEventListener('click', () => {
+                    currentIndex = index;
+                    videoPlayer.src = url;
+                    videoPlayer.play();
+                    updateUrlList();
+                    updateCurrentIndex();
+                });
+                urlList.appendChild(item);
+            });
+        }
+
+        function updateCurrentIndex() {
+            currentVideoIndex.textContent = `${currentIndex + 1}/${videoUrls.length}`;
+        }
+    </script>
+</body>
+</html>
