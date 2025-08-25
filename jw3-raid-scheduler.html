@@ -1,0 +1,1347 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>剑网三百战异闻录副本排班系统</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Microsoft YaHei', sans-serif;
+        }
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        h1 {
+            color: #c23c33;
+            margin-bottom: 10px;
+        }
+        .module {
+            background-color: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .module h2 {
+            color: #c23c33;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #eee;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"], select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #c23c33;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #a62c25;
+        }
+        .button-secondary {
+            background-color: #666;
+        }
+        .button-secondary:hover {
+            background-color: #555;
+        }
+        .button-small {
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .奶妈 {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+        .schedule-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .day-column {
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        .day-header {
+            background-color: #c23c33;
+            color: white;
+            padding: 10px;
+            text-align: center;
+            font-weight: bold;
+        }
+        .time-slot {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        .time-slot-header {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .team {
+            background-color: #f1f8e9;
+            padding: 5px;
+            margin-bottom: 5px;
+            border-radius: 3px;
+            border-left: 3px solid #4caf50;
+        }
+        .team-member {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 3px;
+            font-size: 14px;
+        }
+        .stats-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .stat-card {
+            flex: 1 1 300px;
+            background-color: white;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .empty-slot {
+            color: #999;
+            font-style: italic;
+            text-align: center;
+            padding: 10px;
+        }
+        .error-message {
+            color: #d32f2f;
+            margin-top: 10px;
+        }
+        .success-message {
+            color: #2e7d32;
+            margin-top: 10px;
+        }
+        .availability-grid {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 5px;
+            margin-top: 10px;
+        }
+        .availability-header {
+            text-align: center;
+            font-weight: bold;
+            padding: 8px;
+            background-color: #f2f2f2;
+        }
+        .availability-cell {
+            padding: 8px 5px;
+            text-align: center;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .available {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+            border-color: #4caf50;
+        }
+        .not-available {
+            background-color: #ffebee;
+            color: #d32f2f;
+            border-color: #f44336;
+        }
+        .player-item {
+            background-color: white;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .stats-section {
+            margin-top: 20px;
+        }
+        
+        .team-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .unassigned-team {
+            flex: 1 1 300px;
+            background-color: #fff3e0;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 3px solid #ff9800;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .player-name {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .player-item {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 15px;
+            background-color: #f9f9f9;
+        }
+        .player-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .player-name {
+            font-weight: bold;
+            font-size: 16px;
+            color: #333;
+        }
+        .account-list {
+            margin-top: 10px;
+        }
+        .account-item {
+            padding: 5px 10px;
+            background-color: white;
+            border: 1px solid #eee;
+            border-radius: 3px;
+            margin-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .account-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 600px;
+            border-radius: 5px;
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover {
+            color: black;
+        }
+        .time-type {
+            font-weight: bold;
+            text-align: right;
+            padding-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>剑网三百战异闻录副本排班系统</h1>
+            <p>高效协调玩家账号，自动生成最优副本排班计划</p>
+        </header>
+
+        <!-- 玩家与账号管理 -->
+        <div id="players-accounts" class="module">
+            <h2>玩家与账号管理</h2>
+            
+            <!-- 添加玩家表单 -->
+            <div class="form-group">
+                <label for="playerName">玩家名称：</label>
+                <input type="text" id="playerName" placeholder="输入玩家名称">
+            </div>
+            <button onclick="addPlayer()">添加玩家</button>
+            <button onclick="clearPlayerForm()" class="button-secondary">清空</button>
+            <div id="playerMessage"></div>
+
+            <!-- 账号管理表单 -->
+            <div class="form-group">
+                <label for="accountPlayerId">所属玩家：</label>
+                <select id="accountPlayerId"></select>
+            </div>
+            <div class="form-group">
+                <label for="accountName">账号名称：</label>
+                <input type="text" id="accountName" placeholder="输入账号名称">
+            </div>
+            <div class="form-group">
+                <label for="accountType">角色类型：</label>
+                <select id="accountType">
+                    <option value="DPS">DPS（输出）</option>
+                    <option value="奶妈">奶妈（治疗）</option>
+                </select>
+            </div>
+            <button onclick="addAccount()">添加账号</button>
+            <button onclick="clearAccountForm()" class="button-secondary">清空</button>
+            <div id="accountMessage"></div>
+
+            <!-- 玩家列表及空闲时间设置 -->
+            <div id="playersList">
+                <!-- 玩家数据将通过JavaScript动态加载 -->
+            </div>
+        </div>
+
+        <!-- 固定阵容 -->
+        <div id="teams" class="module">
+            <h2>固定阵容</h2>
+            <div class="form-group">
+                <label for="teamName">阵容名称：</label>
+                <input type="text" id="teamName" placeholder="输入阵容名称">
+            </div>
+            <div class="form-group">
+                <label for="teamAccount1">角色1：</label>
+                <select id="teamAccount1"></select>
+            </div>
+            <div class="form-group">
+                <label for="teamAccount2">角色2：</label>
+                <select id="teamAccount2"></select>
+            </div>
+            <div class="form-group">
+                <label for="teamAccount3">角色3：</label>
+                <select id="teamAccount3"></select>
+            </div>
+            <button onclick="addTeam()">添加阵容</button>
+            <button onclick="clearTeamForm()" class="button-secondary">清空</button>
+            <div id="teamMessage"></div>
+
+            <table id="teamsTable">
+                <thead>
+                    <tr>
+                        <th>阵容ID</th>
+                        <th>阵容名称</th>
+                        <th>角色1</th>
+                        <th>角色2</th>
+                        <th>角色3</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="teamsTableBody">
+                    <!-- 阵容数据将通过JavaScript动态加载 -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 数据管理 -->
+        <div id="dataManager" class="module">
+            <h2>数据管理</h2>
+            <div class="form-group">
+                <input type="file" id="importFile" accept=".json">
+                <button onclick="importLocalStorage()">导入数据</button>
+                <button onclick="exportLocalStorage()" class="button-secondary">导出数据</button>
+            </div>
+            <div id="dataMessage"></div>
+        </div>
+
+        <!-- 排班结果 -->
+        <div id="results" class="module">
+            <h2>排班结果</h2>
+            <h3>排班计划</h3>
+            <button onclick="generateSchedule()">生成排班计划</button>
+            <div id="scheduleMessage"></div>
+            <div class="schedule-grid" id="scheduleGrid">
+                <!-- 排班结果将通过JavaScript动态加载 -->
+            </div>
+            <button onclick="regenerateSchedule()">重新生成</button>
+            <button onclick="exportSchedule()" class="button-secondary">导出排班</button>
+        </div>
+    </div>
+
+    <!-- 账号编辑模态框 -->
+    <div id="accountModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeAccountModal()">&times;</span>
+            <h3>编辑账号</h3>
+            <input type="hidden" id="editAccountId">
+            <div class="form-group">
+                <label for="editAccountName">账号名称：</label>
+                <input type="text" id="editAccountName">
+            </div>
+            <div class="form-group">
+                <label for="editAccountType">角色类型：</label>
+                <select id="editAccountType">
+                    <option value="DPS">DPS（输出）</option>
+                    <option value="奶妈">奶妈（治疗）</option>
+                </select>
+            </div>
+            <button onclick="saveAccountEdit()">保存</button>
+            <button onclick="closeAccountModal()" class="button-secondary">取消</button>
+        </div>
+    </div>
+
+    <script>
+        // 数据存储
+        let players = [];
+        let accounts = [];
+        let teams = [];
+        let availability = {}; // 存储玩家空闲时间
+        let schedule = {}; // 存储排班结果
+        
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            loadData();
+            initializeModules();
+        });
+
+        // 初始化所有模块
+        function initializeModules() {
+            // 刷新所有模块的数据
+            updatePlayersList();
+            updatePlayersSelect();
+            updateAccountsSelect();
+            updateTeamsTable();
+            displaySchedule();
+            displayStats();
+        }
+
+        // 加载本地存储数据
+        function loadData() {
+            const savedPlayers = localStorage.getItem('jw3Players');
+            const savedAccounts = localStorage.getItem('jw3Accounts');
+            const savedTeams = localStorage.getItem('jw3Teams');
+            const savedAvailability = localStorage.getItem('jw3Availability');
+            const savedSchedule = localStorage.getItem('jw3Schedule');
+
+            if (savedPlayers) players = JSON.parse(savedPlayers);
+            if (savedAccounts) accounts = JSON.parse(savedAccounts);
+            if (savedTeams) teams = JSON.parse(savedTeams);
+            if (savedAvailability) availability = JSON.parse(savedAvailability);
+            if (savedSchedule) schedule = JSON.parse(savedSchedule);
+        }
+
+        // 保存数据到本地存储
+        function saveData() {
+            localStorage.setItem('jw3Players', JSON.stringify(players));
+            localStorage.setItem('jw3Accounts', JSON.stringify(accounts));
+            localStorage.setItem('jw3Teams', JSON.stringify(teams));
+            localStorage.setItem('jw3Availability', JSON.stringify(availability));
+            localStorage.setItem('jw3Schedule', JSON.stringify(schedule));
+        }
+
+        // 导出所有localStorage数据
+        function exportLocalStorage() {
+            // 收集所有数据
+            const allData = {
+                players: players,
+                accounts: accounts,
+                teams: teams,
+                availability: availability,
+                schedule: schedule,
+                exportTime: new Date().toLocaleString()
+            };
+
+            // 将数据转换为JSON字符串
+            const jsonData = JSON.stringify(allData, null, 2);
+
+            // 创建JSON文件并下载
+            const blob = new Blob([jsonData], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `jw3-data-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+
+            // 显示成功消息
+            const dataMessage = document.getElementById('dataMessage');
+            dataMessage.textContent = '数据导出成功';
+            dataMessage.className = 'success-message';
+            setTimeout(() => {
+                dataMessage.textContent = '';
+            }, 3000);
+        }
+
+        // 导入本地存储数据
+        function importLocalStorage() {
+            const fileInput = document.getElementById('importFile');
+            const file = fileInput.files[0];
+            const dataMessage = document.getElementById('dataMessage');
+            if (!file) {
+                dataMessage.textContent = '请选择文件';
+                dataMessage.className = 'error-message';
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    players = data.players || [];
+                    accounts = data.accounts || [];
+                    teams = data.teams || [];
+                    availability = data.availability || {};
+                    schedule = data.schedule || {};
+                    saveData();
+                    initializeModules();
+                    dataMessage.textContent = '数据导入成功';
+                    dataMessage.className = 'success-message';
+                } catch (error) {
+                    dataMessage.textContent = '数据导入失败，请检查文件格式';
+                    dataMessage.className = 'error-message';
+                }
+            };
+            reader.onerror = function() {
+                dataMessage.textContent = '文件读取失败';
+                dataMessage.className = 'error-message';
+            };
+            reader.readAsText(file);
+        }
+
+        // 更新玩家选择下拉框
+        function updatePlayersSelect() {
+            const playerSelect = document.getElementById('accountPlayerId');
+            if (playerSelect) {
+                playerSelect.innerHTML = '';
+                players.forEach(player => {
+                    const option = document.createElement('option');
+                    option.value = player.id;
+                    option.textContent = player.name;
+                    playerSelect.appendChild(option);
+                });
+            }
+        }
+
+        // 更新账号选择下拉框
+        function updateAccountsSelect() {
+            const accountSelects = [
+                document.getElementById('teamAccount1'),
+                document.getElementById('teamAccount2'),
+                document.getElementById('teamAccount3')
+            ];
+
+            // 获取所有已经在固定阵容中使用的账号ID
+            const usedAccountIds = new Set();
+            teams.forEach(team => {
+                team.accountIds.forEach(accountId => {
+                    usedAccountIds.add(accountId);
+                });
+            });
+
+            accountSelects.forEach(select => {
+                if (select) {
+                    select.innerHTML = '';
+                    
+                    // 只添加未被任何固定阵容使用的账号
+                    accounts.forEach(account => {
+                        if (!usedAccountIds.has(account.id)) {
+                            const option = document.createElement('option');
+                            option.value = account.id;
+                            option.textContent = `${account.name} (${account.type})`;
+                            select.appendChild(option);
+                        }
+                    });
+                }
+            });
+        }
+
+        // 添加玩家
+        function addPlayer() {
+            const playerName = document.getElementById('playerName').value.trim();
+            const playerMessage = document.getElementById('playerMessage');
+
+            if (!playerName) {
+                playerMessage.textContent = '请输入玩家名称';
+                playerMessage.className = 'error-message';
+                return;
+            }
+
+            const newPlayer = {
+                id: Date.now().toString(),
+                name: playerName
+            };
+
+            players.push(newPlayer);
+            saveData();
+            updatePlayersList();
+            updatePlayersSelect();
+            clearPlayerForm();
+
+            playerMessage.textContent = '玩家添加成功';
+            playerMessage.className = 'success-message';
+            setTimeout(() => {
+                playerMessage.textContent = '';
+            }, 3000);
+        }
+
+        // 清空玩家表单
+        function clearPlayerForm() {
+            document.getElementById('playerName').value = '';
+            document.getElementById('playerMessage').textContent = '';
+        }
+
+        // 更新玩家列表
+        function updatePlayersList() {
+            const playersList = document.getElementById('playersList');
+            playersList.innerHTML = '';
+
+            if (players.length === 0) {
+                playersList.innerHTML = '<p class="empty-slot">暂无玩家，请先添加玩家</p>';
+                return;
+            }
+
+            players.forEach(player => {
+                const playerItem = document.createElement('div');
+                playerItem.className = 'player-item';
+                
+                // 获取玩家的账号列表
+                const playerAccounts = accounts.filter(account => account.playerId === player.id);
+                
+                // 获取或初始化玩家的空闲时间
+                const playerAvail = availability[player.id] || {};
+                
+                // 构建玩家项HTML
+                playerItem.innerHTML = `
+                    <div class="player-header">
+                        <span class="player-name">${player.name}</span>
+                        <div>
+                            <button onclick="deletePlayer('${player.id}')" class="button-secondary button-small">删除玩家</button>
+                        </div>
+                    </div>
+                    
+                    <!-- 账号列表 -->
+                    <div class="account-list">
+                        <strong>账号：</strong>${playerAccounts.length > 0 ? '' : '暂无账号'}
+                        ${playerAccounts.map(account => `
+                            <div class="account-item">
+                                <div class="account-info">
+                                    <span>${account.name}</span>
+                                    <span class="${account.type === '奶妈' ? '奶妈' : ''}">${account.type}</span>
+                                </div>
+                                <div>
+                                    <button onclick="editAccount('${account.id}')" class="button-small">编辑</button>
+                                    <button onclick="deleteAccount('${account.id}')" class="button-secondary button-small">删除</button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    
+                    <!-- 空闲时间设置 -->
+                    <div style="margin-top: 15px;">
+                        <strong>空闲时间设置：</strong>
+                        <div class="availability-grid">
+                            <!-- 表头 -->
+                            <div class="availability-header"></div>
+                            <div class="availability-header">周一</div>
+                            <div class="availability-header">周二</div>
+                            <div class="availability-header">周三</div>
+                            <div class="availability-header">周四</div>
+                            <div class="availability-header">周五</div>
+                            <div class="availability-header">周六</div>
+                            <div class="availability-header">周日</div>
+                            
+                            <!-- 上午时段 -->
+                            <div class="availability-header time-type">上午</div>
+                            <div class="availability-cell ${playerAvail['mon-morning'] ? 'available' : 'not-available'}" onclick="toggleAvailability('${player.id}', 'mon-morning')">
+                                ${playerAvail['mon-morning'] ? '✓' : '✗'}
+                            </div>
+                            <div class="availability-cell ${playerAvail['tue-morning'] ? 'available' : 'not-available'}" onclick="toggleAvailability('${player.id}', 'tue-morning')">
+                                ${playerAvail['tue-morning'] ? '✓' : '✗'}
+                            </div>
+                            <div class="availability-cell ${playerAvail['wed-morning'] ? 'available' : 'not-available'}" onclick="toggleAvailability('${player.id}', 'wed-morning')">
+                                ${playerAvail['wed-morning'] ? '✓' : '✗'}
+                            </div>
+                            <div class="availability-cell ${playerAvail['thu-morning'] ? 'available' : 'not-available'}" onclick="toggleAvailability('${player.id}', 'thu-morning')">
+                                ${playerAvail['thu-morning'] ? '✓' : '✗'}
+                            </div>
+                            <div class="availability-cell ${playerAvail['fri-morning'] ? 'available' : 'not-available'}" onclick="toggleAvailability('${player.id}', 'fri-morning')">
+                                ${playerAvail['fri-morning'] ? '✓' : '✗'}
+                            </div>
+                            <div class="availability-cell ${playerAvail['sat-morning'] ? 'available' : 'not-available'}" onclick="toggleAvailability('${player.id}', 'sat-morning')">
+                                ${playerAvail['sat-morning'] ? '✓' : '✗'}
+                            </div>
+                            <div class="availability-cell ${playerAvail['sun-morning'] ? 'available' : 'not-available'}" onclick="toggleAvailability('${player.id}', 'sun-morning')">
+                                ${playerAvail['sun-morning'] ? '✓' : '✗'}
+                            </div>
+                            
+                            <!-- 下午时段 -->
+                            <div class="availability-header time-type">下午</div>
+                            <div class="availability-cell ${playerAvail['mon-afternoon'] ? 'available' : 'not-available'}" onclick="toggleAvailability('${player.id}', 'mon-afternoon')">
+                                ${playerAvail['mon-afternoon'] ? '✓' : '✗'}
+                            </div>
+                            <div class="availability-cell ${playerAvail['tue-afternoon'] ? 'available' : 'not-available'}" onclick="toggleAvailability('${player.id}', 'tue-afternoon')">
+                                ${playerAvail['tue-afternoon'] ? '✓' : '✗'}
+                            </div>
+                            <div class="availability-cell ${playerAvail['wed-afternoon'] ? 'available' : 'not-available'}" onclick="toggleAvailability('${player.id}', 'wed-afternoon')">
+                                ${playerAvail['wed-afternoon'] ? '✓' : '✗'}
+                            </div>
+                            <div class="availability-cell ${playerAvail['thu-afternoon'] ? 'available' : 'not-available'}" onclick="toggleAvailability('${player.id}', 'thu-afternoon')">
+                                ${playerAvail['thu-afternoon'] ? '✓' : '✗'}
+                            </div>
+                            <div class="availability-cell ${playerAvail['fri-afternoon'] ? 'available' : 'not-available'}" onclick="toggleAvailability('${player.id}', 'fri-afternoon')">
+                                ${playerAvail['fri-afternoon'] ? '✓' : '✗'}
+                            </div>
+                            <div class="availability-cell ${playerAvail['sat-afternoon'] ? 'available' : 'not-available'}" onclick="toggleAvailability('${player.id}', 'sat-afternoon')">
+                                ${playerAvail['sat-afternoon'] ? '✓' : '✗'}
+                            </div>
+                            <div class="availability-cell ${playerAvail['sun-afternoon'] ? 'available' : 'not-available'}" onclick="toggleAvailability('${player.id}', 'sun-afternoon')">
+                                ${playerAvail['sun-afternoon'] ? '✓' : '✗'}
+                            </div>
+                            
+                            <!-- 晚上时段 -->
+                            <div class="availability-header time-type">晚上</div>
+                            <div class="availability-cell ${playerAvail['mon-evening'] ? 'available' : 'not-available'}" onclick="toggleAvailability('${player.id}', 'mon-evening')">
+                                ${playerAvail['mon-evening'] ? '✓' : '✗'}
+                            </div>
+                            <div class="availability-cell ${playerAvail['tue-evening'] ? 'available' : 'not-available'}" onclick="toggleAvailability('${player.id}', 'tue-evening')">
+                                ${playerAvail['tue-evening'] ? '✓' : '✗'}
+                            </div>
+                            <div class="availability-cell ${playerAvail['wed-evening'] ? 'available' : 'not-available'}" onclick="toggleAvailability('${player.id}', 'wed-evening')">
+                                ${playerAvail['wed-evening'] ? '✓' : '✗'}
+                            </div>
+                            <div class="availability-cell ${playerAvail['thu-evening'] ? 'available' : 'not-available'}" onclick="toggleAvailability('${player.id}', 'thu-evening')">
+                                ${playerAvail['thu-evening'] ? '✓' : '✗'}
+                            </div>
+                            <div class="availability-cell ${playerAvail['fri-evening'] ? 'available' : 'not-available'}" onclick="toggleAvailability('${player.id}', 'fri-evening')">
+                                ${playerAvail['fri-evening'] ? '✓' : '✗'}
+                            </div>
+                            <div class="availability-cell ${playerAvail['sat-evening'] ? 'available' : 'not-available'}" onclick="toggleAvailability('${player.id}', 'sat-evening')">
+                                ${playerAvail['sat-evening'] ? '✓' : '✗'}
+                            </div>
+                            <div class="availability-cell ${playerAvail['sun-evening'] ? 'available' : 'not-available'}" onclick="toggleAvailability('${player.id}', 'sun-evening')">
+                                ${playerAvail['sun-evening'] ? '✓' : '✗'}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                playersList.appendChild(playerItem);
+            });
+        }
+
+        // 切换玩家空闲时间状态
+        function toggleAvailability(playerId, timeSlot) {
+            if (!availability[playerId]) {
+                availability[playerId] = {};
+            }
+            
+            // 切换状态
+            availability[playerId][timeSlot] = !availability[playerId][timeSlot];
+            
+            // 保存并更新UI
+            saveData();
+            updatePlayersList();
+        }
+
+        // 删除玩家
+        function deletePlayer(playerId) {
+            // 检查是否有关联账号
+            const hasAccounts = accounts.some(account => account.playerId === playerId);
+            if (hasAccounts) {
+                alert('该玩家有关联账号，请先删除账号再删除玩家');
+                return;
+            }
+
+            if (confirm('确定要删除该玩家吗？')) {
+                players = players.filter(player => player.id !== playerId);
+                // 删除相关的空闲时间设置
+                delete availability[playerId];
+                saveData();
+                updatePlayersList();
+                updatePlayersSelect();
+            }
+        }
+
+        // 添加账号
+        function addAccount() {
+            const playerId = document.getElementById('accountPlayerId').value;
+            const accountName = document.getElementById('accountName').value.trim();
+            const accountType = document.getElementById('accountType').value;
+            const accountMessage = document.getElementById('accountMessage');
+
+            if (!playerId || !accountName) {
+                accountMessage.textContent = '请填写完整账号信息';
+                accountMessage.className = 'error-message';
+                return;
+            }
+
+            const newAccount = {
+                id: Date.now().toString(),
+                playerId: playerId,
+                name: accountName,
+                type: accountType
+            };
+
+            accounts.push(newAccount);
+            saveData();
+            updatePlayersList();
+            updateAccountsSelect();
+            clearAccountForm();
+
+            accountMessage.textContent = '账号添加成功';
+            accountMessage.className = 'success-message';
+            setTimeout(() => {
+                accountMessage.textContent = '';
+            }, 3000);
+        }
+
+        // 清空账号表单
+        function clearAccountForm() {
+            document.getElementById('accountName').value = '';
+            document.getElementById('accountMessage').textContent = '';
+        }
+
+        // 编辑账号
+        function editAccount(accountId) {
+            const account = accounts.find(a => a.id === accountId);
+            if (account) {
+                document.getElementById('editAccountId').value = account.id;
+                document.getElementById('editAccountName').value = account.name;
+                document.getElementById('editAccountType').value = account.type;
+                document.getElementById('accountModal').style.display = 'block';
+            }
+        }
+
+        // 保存账号编辑
+        function saveAccountEdit() {
+            const accountId = document.getElementById('editAccountId').value;
+            const accountName = document.getElementById('editAccountName').value.trim();
+            const accountType = document.getElementById('editAccountType').value;
+            
+            if (!accountName) {
+                alert('请输入账号名称');
+                return;
+            }
+            
+            const accountIndex = accounts.findIndex(a => a.id === accountId);
+            if (accountIndex !== -1) {
+                accounts[accountIndex].name = accountName;
+                accounts[accountIndex].type = accountType;
+                saveData();
+                updatePlayersList();
+                updateAccountsSelect();
+                closeAccountModal();
+            }
+        }
+
+        // 关闭账号编辑模态框
+        function closeAccountModal() {
+            document.getElementById('accountModal').style.display = 'none';
+        }
+
+        // 删除账号
+        function deleteAccount(accountId) {
+            if (confirm('确定要删除该账号吗？')) {
+                accounts = accounts.filter(account => account.id !== accountId);
+                saveData();
+                updatePlayersList();
+                updateAccountsSelect();
+            }
+        }
+
+        // 添加阵容
+        function addTeam() {
+            const teamName = document.getElementById('teamName').value.trim();
+            const accountId1 = document.getElementById('teamAccount1').value;
+            const accountId2 = document.getElementById('teamAccount2').value;
+            const accountId3 = document.getElementById('teamAccount3').value;
+            const teamMessage = document.getElementById('teamMessage');
+
+            if (!teamName || !accountId1 || !accountId2 || !accountId3) {
+                teamMessage.textContent = '请填写完整阵容信息';
+                teamMessage.className = 'error-message';
+                return;
+            }
+
+            // 检查账号是否重复
+            if (accountId1 === accountId2 || accountId1 === accountId3 || accountId2 === accountId3) {
+                teamMessage.textContent = '阵容中的账号不能重复';
+                teamMessage.className = 'error-message';
+                return;
+            }
+
+            // 检查是否有至少一个奶妈
+            const account1 = accounts.find(a => a.id === accountId1);
+            const account2 = accounts.find(a => a.id === accountId2);
+            const account3 = accounts.find(a => a.id === accountId3);
+
+            if (!account1 || !account2 || !account3) {
+                teamMessage.textContent = '找不到指定的账号';
+                teamMessage.className = 'error-message';
+                return;
+            }
+
+            const hasHealer = account1.type === '奶妈' || account2.type === '奶妈' || account3.type === '奶妈';
+            if (!hasHealer) {
+                teamMessage.textContent = '阵容中必须包含至少一个奶妈';
+                teamMessage.className = 'error-message';
+                return;
+            }
+
+            const newTeam = {
+                id: Date.now().toString(),
+                name: teamName,
+                accountIds: [accountId1, accountId2, accountId3]
+            };
+
+            teams.push(newTeam);
+            saveData();
+            updateTeamsTable();
+            clearTeamForm();
+
+            teamMessage.textContent = '阵容添加成功';
+            teamMessage.className = 'success-message';
+            setTimeout(() => {
+                teamMessage.textContent = '';
+            }, 3000);
+        }
+
+        // 清空阵容表单
+        function clearTeamForm() {
+            document.getElementById('teamName').value = '';
+            document.getElementById('teamMessage').textContent = '';
+        }
+
+        // 更新阵容表格
+        function updateTeamsTable() {
+            const tableBody = document.getElementById('teamsTableBody');
+            tableBody.innerHTML = '';
+
+            if (teams.length === 0) {
+                const row = document.createElement('tr');
+                row.innerHTML = '<td colspan="6" class="empty-slot">暂无固定阵容</td>';
+                tableBody.appendChild(row);
+                return;
+            }
+
+            teams.forEach(team => {
+                const account1 = accounts.find(a => a.id === team.accountIds[0]);
+                const account2 = accounts.find(a => a.id === team.accountIds[1]);
+                const account3 = accounts.find(a => a.id === team.accountIds[2]);
+
+                const account1Name = account1 ? `${account1.name} (${account1.type})` : '未知';
+                const account2Name = account2 ? `${account2.name} (${account2.type})` : '未知';
+                const account3Name = account3 ? `${account3.name} (${account3.type})` : '未知';
+
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${team.id}</td>
+                    <td>${team.name}</td>
+                    <td>${account1Name}</td>
+                    <td>${account2Name}</td>
+                    <td>${account3Name}</td>
+                    <td>
+                        <button onclick="editTeam('${team.id}')">编辑</button>
+                        <button onclick="deleteTeam('${team.id}')" class="button-secondary">删除</button>
+                    </td>
+                `;
+
+                tableBody.appendChild(row);
+            });
+        }
+
+        // 编辑阵容
+        function editTeam(teamId) {
+            const team = teams.find(t => t.id === teamId);
+            if (team) {
+                document.getElementById('teamName').value = team.name;
+                document.getElementById('teamAccount1').value = team.accountIds[0];
+                document.getElementById('teamAccount2').value = team.accountIds[1];
+                document.getElementById('teamAccount3').value = team.accountIds[2];
+                // 在实际应用中，这里可以实现完整的编辑功能
+            }
+        }
+
+        // 删除阵容
+        function deleteTeam(teamId) {
+            if (confirm('确定要删除该阵容吗？')) {
+                teams = teams.filter(team => team.id !== teamId);
+                saveData();
+                updateTeamsTable();
+            }
+        }
+
+        // 生成排班计划
+        function generateSchedule() {
+            const scheduleWeek = 'current'; // 默认使用当前周
+            const scheduleMessage = document.getElementById('scheduleMessage');
+
+            // 初始化排班结果
+            schedule = {
+                week: scheduleWeek,
+                data: {},
+                assignedTeams: new Set(), // 跟踪已安排的队伍ID
+                playerParticipation: {} // 跟踪每个玩家在每天不同时段的参与次数
+            };
+
+            const days = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+            const times = ['上午', '下午', '晚上'];
+
+            // 初始化玩家参与次数跟踪
+            players.forEach(player => {
+                schedule.playerParticipation[player.id] = {};
+                days.forEach(day => {
+                    schedule.playerParticipation[player.id][day] = {
+                        '上午': 0,
+                        '下午': 0,
+                        '晚上': 0
+                    };
+                });
+            });
+
+            // 为每天每个时段生成排班（只使用固定阵容）
+            days.forEach(day => {
+                schedule.data[day] = {};
+                times.forEach(time => {
+                    schedule.data[day][time] = [];
+                    const currentSlotAssignedPlayers = new Set(); // 跟踪当前时段已安排的玩家ID
+
+                    // 直接使用固定阵容排班
+                    const availableTeams = getAvailableTeams(day, time, schedule.assignedTeams, schedule.playerParticipation, currentSlotAssignedPlayers);
+                    // 添加已安排的队伍到跟踪集合
+                    availableTeams.forEach(team => {
+                        schedule.assignedTeams.add(team.id);
+                        // 更新玩家参与次数
+                        team.accountIds.forEach(accountId => {
+                            const account = accounts.find(a => a.id === accountId);
+                            if (account) {
+                                schedule.playerParticipation[account.playerId][day][time]++;
+                            }
+                        });
+                    });
+                    schedule.data[day][time] = availableTeams;
+                });
+            });
+
+            saveData();
+            scheduleMessage.textContent = '排班计划生成成功，请查看排班结果';
+            scheduleMessage.className = 'success-message';
+            setTimeout(() => {
+                scheduleMessage.textContent = '';
+                // 刷新排班结果显示
+                displaySchedule();
+                displayUnassignedTeams(); // 显示未排班的预设队伍
+            }, 2000);
+        }
+
+        // 获取可用的固定阵容
+        function getAvailableTeams(day, time, assignedTeams, playerParticipation, currentSlotAssignedPlayers) {
+            // 转换为内部表示（周一 -> mon, 上午 -> morning）
+            const dayMap = {
+                '周一': 'mon', '周二': 'tue', '周三': 'wed',
+                '周四': 'thu', '周五': 'fri', '周六': 'sat', '周日': 'sun'
+            };
+            const timeMap = {
+                '上午': 'morning', '下午': 'afternoon', '晚上': 'evening'
+            };
+
+            const internalDay = dayMap[day];
+            const internalTime = timeMap[time];
+            const timeKey = `${internalDay}-${internalTime}`;
+
+            // 过滤出：
+            // 1. 未被安排过的队伍
+            // 2. 队伍中所有成员在指定时间都有空
+            // 3. 队伍中所有成员在同一天的该时段未超过参与次数限制
+            // 4. 队伍中所有成员在当前时段未被安排过
+            const availableTeams = teams.filter(team => {
+                // 检查队伍是否已被安排
+                if (assignedTeams.has(team.id)) {
+                    return false;
+                }
+
+                // 检查队伍中所有成员是否都有空且未超过参与次数限制，且在当前时段未被安排
+                return team.accountIds.every(accountId => {
+                    const account = accounts.find(a => a.id === accountId);
+                    if (!account) return false;
+                    
+                    // 检查可用性
+                    const playerAvail = availability[account.playerId] || {};
+                    if (playerAvail[timeKey] !== true) {
+                        return false;
+                    }
+
+                    // 检查参与次数限制：上午和晚上最多1次，下午最多2次
+                    const maxParticipations = time === '下午' ? 2 : 1;
+                    if (playerParticipation[account.playerId][day][time] >= maxParticipations) {
+                        return false;
+                    }
+
+                    // 检查玩家在当前时段是否已被安排
+                    if (currentSlotAssignedPlayers.has(account.playerId)) {
+                        return false;
+                    }
+
+                    return true;
+                });
+            });
+
+            // 随机打乱并选择最多3个队伍
+            const shuffledTeams = [...availableTeams].sort(() => 0.5 - Math.random());
+            const selectedTeams = [];
+            
+            for (let i = 0; i < shuffledTeams.length && selectedTeams.length < 3; i++) {
+                const team = shuffledTeams[i];
+                // 检查该队伍的所有成员在当前时段是否仍未被安排
+                const canAddTeam = team.accountIds.every(accountId => {
+                    const account = accounts.find(a => a.id === accountId);
+                    return account && !currentSlotAssignedPlayers.has(account.playerId);
+                });
+                
+                if (canAddTeam) {
+                    selectedTeams.push(team);
+                    // 将队伍中的玩家添加到当前时段已安排的玩家集合中
+                    team.accountIds.forEach(accountId => {
+                        const account = accounts.find(a => a.id === accountId);
+                        if (account) {
+                            currentSlotAssignedPlayers.add(account.playerId);
+                        }
+                    });
+                }
+            }
+
+            return selectedTeams;
+        }
+
+        // 显示未排班的预设队伍
+        function displayUnassignedTeams() {
+            if (!schedule || !schedule.assignedTeams) {
+                // 检查容器是否存在
+                let container = document.getElementById('unassignedTeamsContainer');
+                if (!container) {
+                    const resultsContainer = document.getElementById('results');
+                    container = document.createElement('div');
+                    container.id = 'unassignedTeamsContainer';
+                    container.className = 'stats-section';
+                    resultsContainer.appendChild(container);
+                }
+                container.innerHTML = '<p class="empty-slot">暂无未排班队伍数据</p>';
+                return;
+            }
+
+            let container = document.getElementById('unassignedTeamsContainer');
+            
+            // 如果容器不存在，创建它
+            if (!container) {
+                const resultsContainer = document.getElementById('results');
+                container = document.createElement('div');
+                container.id = 'unassignedTeamsContainer';
+                container.className = 'stats-section';
+                resultsContainer.appendChild(container);
+            }
+
+            // 清空容器
+            container.innerHTML = '<h3>未排班的预设队伍</h3>';
+
+            // 找出未排班的队伍
+            const unassignedTeams = teams.filter(team => !schedule.assignedTeams.has(team.id));
+
+            if (unassignedTeams.length === 0) {
+                container.innerHTML += '<p class="success-message">所有预设队伍已成功排班</p>';
+                return;
+            }
+
+            // 创建队伍列表
+            const teamList = document.createElement('div');
+            teamList.className = 'team-list';
+
+            unassignedTeams.forEach(team => {
+                const teamElement = document.createElement('div');
+                teamElement.className = 'unassigned-team';
+                teamElement.innerHTML = `<strong>${team.name}</strong>`;
+
+                // 添加队伍成员
+                team.accountIds.forEach(accountId => {
+                    const account = accounts.find(a => a.id === accountId);
+                    if (account) {
+                        const player = players.find(p => p.id === account.playerId);
+                        const playerName = player ? player.name : '未知';
+                        const typeClass = account.type === '奶妈' ? '奶妈' : '';
+
+                        teamElement.innerHTML += `
+                            <div class="team-member">
+                                <span>${account.name}</span>
+                                <span class="${typeClass}">${account.type}</span>
+                                <span class="player-name">(${playerName})</span>
+                            </div>
+                        `;
+                    }
+                });
+
+                teamList.appendChild(teamElement);
+            });
+
+            container.appendChild(teamList);
+        }
+
+        // 显示排班结果
+        function displaySchedule() {
+            if (!schedule || !schedule.data) {
+                document.getElementById('scheduleGrid').innerHTML = '<p class="empty-slot">暂无排班计划，请先生成排班</p>';
+                return;
+            }
+
+            const scheduleGrid = document.getElementById('scheduleGrid');
+            scheduleGrid.innerHTML = '';
+
+            const days = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+            const times = ['上午', '下午', '晚上'];
+
+            days.forEach(day => {
+                const dayColumn = document.createElement('div');
+                dayColumn.className = 'day-column';
+                dayColumn.innerHTML = `<div class="day-header">${day}</div>`;
+
+                times.forEach(time => {
+                    const timeSlot = document.createElement('div');
+                    timeSlot.className = 'time-slot';
+                    timeSlot.innerHTML = `<div class="time-slot-header">${time}</div>`;
+
+                    const teams = schedule.data[day] && schedule.data[day][time] ? schedule.data[day][time] : [];
+
+                    if (teams.length === 0) {
+                        timeSlot.innerHTML += '<div class="empty-slot">无安排</div>';
+                    } else {
+                        teams.forEach(team => {
+                            const teamElement = document.createElement('div');
+                            teamElement.className = 'team';
+                            teamElement.innerHTML = `<strong>${team.name}</strong>`;
+
+                            team.accountIds.forEach(accountId => {
+                                const account = accounts.find(a => a.id === accountId);
+                                if (account) {
+                                    const player = players.find(p => p.id === account.playerId);
+                                    const playerName = player ? player.name : '未知';
+                                    const typeClass = account.type === '奶妈' ? '奶妈' : '';
+
+                                    teamElement.innerHTML += `
+                                        <div class="team-member">
+                                            <span>${account.name}</span>
+                                            <span class="${typeClass}">${account.type}</span>
+                                            <span class="player-name">(${playerName})</span>
+                                        </div>
+                                    `;
+                                }
+                            });
+
+                            timeSlot.appendChild(teamElement);
+                        });
+                    }
+
+                    dayColumn.appendChild(timeSlot);
+                });
+
+                scheduleGrid.appendChild(dayColumn);
+            });
+        }
+
+        // 重新生成排班
+        function regenerateSchedule() {
+            generateSchedule();
+        }
+
+        // 导出排班
+        function exportSchedule() {
+            if (!schedule || !schedule.data) {
+                alert('暂无排班计划可导出');
+                return;
+            }
+            
+            // 将排班结果转换为文本
+            let exportText = `剑网三百战异闻录副本排班计划 - 当前周\n\n`;
+
+            const days = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+            const times = ['上午', '下午', '晚上'];
+
+            days.forEach(day => {
+                exportText += `${day}\n`;
+                times.forEach(time => {
+                    exportText += `  ${time}\n`;
+                    const teams = schedule.data[day] && schedule.data[day][time] ? schedule.data[day][time] : [];
+
+                    if (teams.length === 0) {
+                        exportText += `    无安排\n`;
+                    } else {
+                        teams.forEach(team => {
+                            exportText += `    ${team.name}\n`;
+                            team.accountIds.forEach(accountId => {
+                                const account = accounts.find(a => a.id === accountId);
+                                if (account) {
+                                    const player = players.find(p => p.id === account.playerId);
+                                    const playerName = player ? player.name : '未知';
+                                    exportText += `      ${account.name} (${account.type}) - ${playerName}\n`;
+                                }
+                            });
+                        });
+                    }
+                });
+                exportText += '\n';
+            });
+
+            // 创建文本文件并下载
+            const blob = new Blob([exportText], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `jw3-schedule-current.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>

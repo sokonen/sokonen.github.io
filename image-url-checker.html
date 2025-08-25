@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图片URL有效性检测工具</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Arial', sans-serif;
+        }
+        body {
+            background-color: #f5f5f5;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        .input-container {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #555;
+        }
+        textarea {
+            width: 100%;
+            height: 150px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            resize: vertical;
+            font-size: 14px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .progress-container {
+            margin: 20px 0;
+            display: none;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #f1f1f1;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .progress {
+            height: 100%;
+            background-color: #4CAF50;
+            text-align: center;
+            line-height: 20px;
+            color: white;
+            transition: width 0.3s;
+        }
+        .results-container {
+            margin-top: 20px;
+        }
+        .result-title {
+            margin-bottom: 10px;
+            font-weight: bold;
+            color: #555;
+        }
+        .valid-urls {
+            background-color: #e8f5e9;
+            padding: 10px;
+            border-radius: 4px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .valid-urls p {
+            margin: 5px 0;
+            color: #2e7d32;
+        }
+        .error-message {
+            color: #d32f2f;
+            margin-top: 10px;
+        }
+        .copy-button {
+            background-color: #2196F3;
+            margin-top: 10px;
+        }
+        .copy-button:hover {
+            background-color: #0b7dda;
+        }
+        .info-box {
+            background-color: #e3f2fd;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            border-left: 4px solid #2196F3;
+        }
+        .info-box h3 {
+            margin-top: 0;
+            color: #1976d2;
+        }
+        .info-box ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>图片URL有效性检测工具</h1>
+        
+        <div class="info-box">
+            <h3>使用说明</h3>
+            <ul>
+                <li>在下方文本框中批量粘贴图片URL（每行一个）</li>
+                <li>点击"检测URL有效性"按钮开始检测</li>
+                <li>工具会自动识别哪些URL可以正常访问，并过滤掉404、403等错误URL</li>
+                <li>检测完成后，可以复制所有有效的图片URL</li>
+            </ul>
+        </div>
+        
+        <div class="input-container">
+            <label for="urlInput">请粘贴图片URL（每行一个）：</label>
+            <textarea id="urlInput" placeholder="https://example.com/image1.jpg
+https://example.com/image2.jpg
+..."></textarea>
+        </div>
+        
+        <button id="checkButton">检测URL有效性</button>
+        
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-bar">
+                <div class="progress" id="progressBar">0%</div>
+            </div>
+            <p id="progressText"></p>
+        </div>
+        
+        <div class="results-container" id="resultsContainer" style="display: none;">
+            <div class="result-title">有效的图片URL：</div>
+            <div class="valid-urls" id="validUrls"></div>
+            <button id="copyButton" class="copy-button" style="display: none;">复制有效URL</button>
+            <p class="error-message" id="errorMessage"></p>
+        </div>
+    </div>
+
+    <script>
+        // 页面加载完成后绑定事件
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('checkButton').addEventListener('click', checkUrls);
+            document.getElementById('copyButton').addEventListener('click', copyValidUrls);
+        });
+
+        // 主检测函数
+        function checkUrls() {
+            const urlInput = document.getElementById('urlInput');
+            const urls = urlInput.value.trim().split('\n').filter(url => url.trim() !== '');
+            const validUrlsContainer = document.getElementById('validUrls');
+            const progressContainer = document.getElementById('progressContainer');
+            const progressBar = document.getElementById('progressBar');
+            const progressText = document.getElementById('progressText');
+            const resultsContainer = document.getElementById('resultsContainer');
+            const errorMessage = document.getElementById('errorMessage');
+            const copyButton = document.getElementById('copyButton');
+
+            // 重置结果
+            validUrlsContainer.innerHTML = '';
+            errorMessage.textContent = '';
+            copyButton.style.display = 'none';
+            resultsContainer.style.display = 'none';
+
+            // 验证输入
+            if (urls.length === 0) {
+                errorMessage.textContent = '请输入至少一个URL';
+                resultsContainer.style.display = 'block';
+                return;
+            }
+
+            // 显示进度条
+            progressContainer.style.display = 'block';
+            progressBar.style.width = '0%';
+            progressBar.textContent = '0%';
+            progressText.textContent = '开始检测...';
+
+            const validUrls = [];
+            let checkedCount = 0;
+            
+            // 使用并发请求处理URL检测
+            // 控制最大并发数，避免浏览器请求限制
+            const MAX_CONCURRENT = 10;
+            const urlQueue = [...urls];
+
+            // 开始检测第一批URL
+            for (let i = 0; i < Math.min(MAX_CONCURRENT, urls.length); i++) {
+                processNextUrl();
+            }
+
+            // 处理队列中的下一个URL
+            function processNextUrl() {
+                if (urlQueue.length === 0) return;
+                
+                const url = urlQueue.shift();
+                validateImageUrl(url).then(isValid => {
+                    updateProgress(isValid, url);
+                    // 继续处理下一个URL
+                    processNextUrl();
+                }).catch(() => {
+                    updateProgress(false, url);
+                    processNextUrl();
+                });
+            }
+
+            // 更新进度和结果
+            function updateProgress(isValid, url) {
+                checkedCount++;
+                const progress = Math.round((checkedCount / urls.length) * 100);
+                progressBar.style.width = `${progress}%`;
+                progressBar.textContent = `${progress}%`;
+                progressText.textContent = `已检测 ${checkedCount}/${urls.length} 个URL`;
+
+                if (isValid) {
+                    validUrls.push(url);
+                    const urlElement = document.createElement('p');
+                    urlElement.textContent = url;
+                    validUrlsContainer.appendChild(urlElement);
+                }
+
+                // 所有URL都检测完毕
+                if (checkedCount === urls.length) {
+                    progressText.textContent = '检测完成';
+                    resultsContainer.style.display = 'block';
+
+                    if (validUrls.length > 0) {
+                        copyButton.style.display = 'block';
+                    } else {
+                        errorMessage.textContent = '没有找到有效的图片URL';
+                    }
+                }
+            }
+        }
+
+        // 验证图片URL是否有效
+        function validateImageUrl(url) {
+            return new Promise((resolve) => {
+                // 快速检查文件扩展名
+                const imageExtensions = /\.(jpg|jpeg|png|gif|bmp|webp|svg)$/i;
+                if (!imageExtensions.test(url)) {
+                    resolve(false);
+                    return;
+                }
+
+                // 设置超时处理
+                const timeoutId = setTimeout(() => {
+                    resolve(false);
+                }, 8000); // 8秒超时
+
+                // 使用HEAD请求检测HTTP状态码
+                fetch(url, {
+                    method: 'HEAD',
+                    mode: 'cors',
+                    credentials: 'omit',
+                    headers: {
+                        'Accept': 'image/*',
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                    }
+                }).then(response => {
+                    clearTimeout(timeoutId);
+                    // 只接受200-299范围内的状态码
+                    resolve(response.ok);
+                }).catch(() => {
+                    clearTimeout(timeoutId);
+                    // 如果HEAD请求失败，尝试使用Image对象作为备选方案
+                    fallbackImageCheck(url).then(isValid => {
+                        resolve(isValid);
+                    });
+                });
+            });
+        }
+
+        // 备选的图片检测方法
+        function fallbackImageCheck(url) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                const timeoutId = setTimeout(() => {
+                    img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'; // 取消请求
+                    resolve(false);
+                }, 8000);
+
+                img.onload = function() {
+                    clearTimeout(timeoutId);
+                    // 检查图片尺寸，确保是有效的图片
+                    resolve(img.width > 0 && img.height > 0);
+                };
+
+                img.onerror = function() {
+                    clearTimeout(timeoutId);
+                    resolve(false);
+                };
+
+                img.onabort = function() {
+                    clearTimeout(timeoutId);
+                    resolve(false);
+                };
+
+                img.src = url;
+            });
+        }
+
+        // 复制有效URL到剪贴板
+        function copyValidUrls() {
+            const validUrlsContainer = document.getElementById('validUrls');
+            const validUrls = Array.from(validUrlsContainer.querySelectorAll('p'))
+                .map(p => p.textContent)
+                .join('\n');
+
+            if (navigator.clipboard && window.isSecureContext) {
+                // 现代浏览器的剪贴板API
+                navigator.clipboard.writeText(validUrls).then(() => {
+                    showCopySuccess();
+                }).catch(() => {
+                    fallbackCopyText(validUrls);
+                });
+            } else {
+                // 兼容性回退
+                fallbackCopyText(validUrls);
+            }
+        }
+
+        // 显示复制成功提示
+        function showCopySuccess() {
+            const copyButton = document.getElementById('copyButton');
+            const originalText = copyButton.textContent;
+            copyButton.textContent = '复制成功！';
+            copyButton.style.backgroundColor = '#4CAF50';
+
+            setTimeout(() => {
+                copyButton.textContent = originalText;
+                copyButton.style.backgroundColor = '#2196F3';
+            }, 2000);
+        }
+
+        // 兼容性复制方法
+        function fallbackCopyText(text) {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            textArea.style.top = '-999999px';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+
+            try {
+                document.execCommand('copy');
+                showCopySuccess();
+            } catch (err) {
+                document.getElementById('errorMessage').textContent = '复制失败，请手动复制';
+            }
+
+            document.body.removeChild(textArea);
+        }
+    </script>
+</body>
+</html>
