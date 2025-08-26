@@ -239,14 +239,19 @@ function bodyclickHandler(evt) {
 		var dstTxtArea = document.getElementById("idTxtAreaMarkedUrl");
 		dstTxtArea.innerHTML="";
 		var cnt=0;
-		var markedElements = document.querySelectorAll('[id^="valTD"][innerHTML="1"]');
-		markedElements.forEach(function(element) {
-			var idnum = element.id.substr(5);
-			var imgSrc = document.getElementById("myimg"+idnum).src;
-			dstTxtArea.innerHTML+=imgSrc;
-			dstTxtArea.innerHTML+="\n";
-			cnt++;
-		});
+		// 先获取所有以"valTD"开头的元素
+		var allValElements = document.querySelectorAll('[id^="valTD"]');
+		// 然后手动筛选出innerHTML为"1"的元素
+		for (var i = 0; i < allValElements.length; i++) {
+			var element = allValElements[i];
+			if (element.innerHTML === "1") {
+				var idnum = element.id.substr(5);
+				var imgSrc = document.getElementById("myimg"+idnum).src;
+				dstTxtArea.innerHTML+=imgSrc;
+				dstTxtArea.innerHTML+="\n";
+				cnt++;
+			}
+		}
 		if(0==cnt) {
 			document.getElementById("labelMarkedImgCnt").innerHTML="<b>没有标记任何图片！</b>";
 			document.getElementById("labelMarkedImgCnt").style.color="red";
@@ -271,7 +276,7 @@ function bodyclickHandler(evt) {
 		if(null==opObj || "undefined"==opObj) {
 			return;
 		}
-		opObj.style.color = "#ff0000"
+		opObj.style.color = "#ff0000";
 	}
 
 	function loadImg(){
