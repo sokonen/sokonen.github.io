@@ -1,0 +1,332 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<HTML>
+ <HEAD>
+  <TITLE> 标记图片快捷工具 </TITLE>
+  <meta charset="utf-8">
+  <META NAME="Generator" CONTENT="EditPlus">
+  <META NAME="Author" CONTENT="">
+  <META NAME="Keywords" CONTENT="">
+  <META NAME="Description" CONTENT="">
+
+<style type="text/css">
+<!--
+.img-container {
+    display: inline-block;
+    margin: 5px;
+    text-align: center;
+    vertical-align: top;
+    width: calc(16.666% - 10px); /* 每行6张图片，减去间距 */
+}
+
+.img-container img {
+    max-width: 100%;
+    max-height: 200px;
+    cursor: pointer;
+}
+
+.img-id {
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.mark-cell {
+    cursor: pointer;
+    padding: 5px;
+    margin-top: 5px;
+    background-color: #ffffff;
+    border: 1px solid #ccc;
+}
+
+.marked {
+    color: #ff0000;
+    background-color: #ff00ff;
+}
+
+.table-container {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.img-row {
+    display: flex;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+}
+-->
+</style>
+
+<script language="javascript">
+//能否弄一个公用的方法，贴入url即可产生一个表格，
+//使得每个图片点击一下，即可标记是否是恶意图片
+//最后表格可以复制出来，以便对比
+//js不方便处理的话，也可以使用cgi
+
+//从xml文档中得到指定名字结点(只得到文档中第一个该名称结点)
+function getUniqueNode(xmlRoot,nodeName){
+	if ( xmlRoot == null ) {
+		return null;
+	}
+	var temp = xmlRoot.getElementsByTagName(nodeName);
+	if (temp.length == 0)
+	{
+		//window.alert("in getUniqueNode("+nodeName+").length == 0");
+		return null;
+	}
+	else{
+		return temp[0];
+	}
+}
+
+/***************
+ * @FuncName:	ClearTabData
+ * @Desc:		清除指定的tab中的所有行，包括表头
+ * @Param:		objTab: 指定的要清除所有元素的table obj
+ * @Param:		isSkipTH	,是否要清除表头
+ * @Return:		成功返回true，否则返回false
+ * @Author:		kennyli
+ * @Date:		20080331
+ */
+function ClearTabData(objTab,isSkipTH)
+{
+	//make sure that objTab is a table
+	if ( objTab == null )
+	{
+		window.alert("objTab is null");
+		return false;
+	}
+	if ( objTab.nodeName != "TABLE" )
+	{
+		window.alert("objTab="+objTab+":"+objTab.nodeName+" is not a TABLE!");
+		return false;
+	}
+	if ( !objTab.hasChildNodes() )
+	{
+		window.alert("objTab has no child");
+		return false;
+	}
+
+	//get tbody of the table
+	var curNode;
+	for ( curNode = objTab.firstChild; curNode != null; curNode=curNode.nextSibling )
+	{
+		//alert("in table"+objTab.id+"'s node: "+curNode.nodeName);
+		if (curNode.nodeName == "TBODY")
+			break;
+	}
+	if (curNode == null)
+	{	//cannot find tbody
+		window.alert("obj has no child named TBODY,try to add a TBODY");
+		curNode = document.createElement("TBODY");
+		objTab.appendChild(curNode);
+	}
+
+	//remove all rows
+	var count=curNode.childNodes.length;
+	for (var i=count-1; i>=0; i--)
+	{
+		var subNode ;
+		if ( curNode.childNodes[i].nodeName=="TR" && 
+			getUniqueNode(curNode.childNodes[i], "TH") != null  ) {
+			if ( !isSkipTH  ) {
+				//如果设置需要清理表头,则清理表头
+				curNode.removeChild(curNode.childNodes[i]);
+			}
+		}
+		else
+		{
+			curNode.removeChild(curNode.childNodes[i]);
+		}
+	}
+	return true;
+}
+
+//产生一个text的td元素,id指定为idname
+function CreateCellWithText(text,idname) {
+	var cell = document.createElement("td");
+	cell.id=idname;
+	cell.appendChild(document.createTextNode(text));
+	return cell;
+}
+
+//产生一个text的th元素
+function CreateHeadCellWithText(text,idname) {
+	var cell = document.createElement("th");
+	cell.id=idname;
+	cell.appendChild(document.createTextNode(text));
+	return cell;
+}
+
+//产生一个带颜色的text类型的td元素
+function CreateCellWithTextColor(text,color,idname){
+	var cell = document.createElement("td");
+	var textelement  = document.createTextNode(text);
+	cell.id=idname;
+	cell.appendChild(textelement);
+	cell.style.color = color;
+	return cell;
+}
+
+//产生一个图片的td元素
+function CreateCellWithImage(imagePath,idname,imgid){
+	var cell = document.createElement("td");
+	var image = document.createElement("img");
+	image.id=imgid;
+	image.src=imagePath;
+	image.referrerPolicy="no-referrer";
+	cell.id=idname;
+	cell.appendChild(image);
+	return cell;
+}
+
+function bodyclickHandler(evt) {
+    var obj = evt.srcElement || evt.target; //取事件源
+	var idprefix=obj.id.substring(0,5);
+	var idnum = obj.id.substr(5);
+	if("valTD"==idprefix) {
+		var valObj = document.getElementById("valTD"+idnum);
+		if(valObj.innerHTML==1){
+			valObj.style.color="#000000";
+			valObj.style.backgroundColor="#ffffff";
+			valObj.innerHTML = 0;
+			valObj.classList.remove("marked");
+		} else {
+			valObj.style.color="#ff0000";
+			valObj.style.backgroundColor="#ff00ff";
+			valObj.innerHTML = 1;
+			valObj.classList.add("marked");
+		}
+		getMarkedImgUrl();
+	} else if("myimg"==idprefix) {
+		window.open(obj.src);
+	}
+}
+</script>
+</HEAD>
+
+<BODY onclick=bodyclickHandler(event)>
+
+<div id="divURL" style="display:block">
+	<label>请输入图片URL：</label>
+	<input type=button value="显示图片" onclick="loadImg()"/>
+	<br/>
+	<textarea cols="40" rows="15" style="width:850px;height:400px;" name="idTxtAreaUrl" id="idTxtAreaUrl"></textarea>
+</div>
+
+<div id="divImg" style="display:none">
+
+	<div class="table-container">
+		<div id="idTable">
+			<!-- 图片将通过JavaScript动态添加到这里 -->
+		</div>
+	</div>
+	<div>
+		<div>
+			<input type=button value="获取被标记图片的URL" onclick="getMarkedImgUrl()"/>
+			<input type=button value="返回" onclick="location.reload()"/>
+		</div>
+		<div>
+			<label >被标记图片的URL列表：&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label><span class=""></span><label id="labelMarkedImgCnt"></label>
+		</div>
+		<textarea cols="40" rows="5" style="width:850px;height:200px;" disabled="disabled" name="idTxtAreaMarkedUrl" id="idTxtAreaMarkedUrl"></textarea>
+	</div>
+</div>
+
+</BODY>
+
+<script language="javascript">
+
+	function getMarkedImgUrl() {
+		var dstTxtArea = document.getElementById("idTxtAreaMarkedUrl");
+		dstTxtArea.innerHTML="";
+		var cnt=0;
+		var markedElements = document.querySelectorAll('[id^="valTD"][innerHTML="1"]');
+		markedElements.forEach(function(element) {
+			var idnum = element.id.substr(5);
+			var imgSrc = document.getElementById("myimg"+idnum).src;
+			dstTxtArea.innerHTML+=imgSrc;
+			dstTxtArea.innerHTML+="\n";
+			cnt++;
+		});
+		if(0==cnt) {
+			document.getElementById("labelMarkedImgCnt").innerHTML="<b>没有标记任何图片！</b>";
+			document.getElementById("labelMarkedImgCnt").style.color="red";
+		} else {
+			document.getElementById("labelMarkedImgCnt").innerHTML="<b>共标记了 "+cnt+" 张图片！</b>";
+			document.getElementById("labelMarkedImgCnt").style.color="blue";
+		}
+	}
+
+	function addEventHandler(oTarget, sEventType, fnHandler) {
+		if (oTarget.addEventListener) {
+			oTarget.addEventListener(sEventType, fnHandler, false);
+		} else if (oTarget.attachEvent) {
+			oTarget.attachEvent("on" + sEventType, fnHandler);
+		} else {
+			oTarget["on" + sEventType] = fnHandler;
+		}
+	};
+
+	function clickHandler(opObjID){
+		var opObj = document.getElementById(opObjID);
+		if(null==opObj || "undefined"==opObj) {
+			return;
+		}
+		opObj.style.color = "#ff0000"
+	}
+
+	function loadImg(){
+		var objDivUrl = document.getElementById("divURL");
+		var objDivImg = document.getElementById("divImg");
+		objDivUrl.style.display="none";
+		objDivImg.style.display="block";
+
+		var ObjURLTxt = document.getElementById("idTxtAreaUrl");
+		var content = ObjURLTxt.value.split('\n');
+		var arrImgUrl = content;
+
+		var container = document.getElementById("idTable");
+		container.innerHTML = "";
+
+		var row;
+		for (var i=0; i<arrImgUrl.length; i++) {
+			if(arrImgUrl[i].length==0) {
+				continue;
+			}
+
+			// 每6张图片创建一个新行
+			if (i % 6 === 0) {
+				row = document.createElement("div");
+				row.className = "img-row";
+				container.appendChild(row);
+			}
+
+			// 创建图片容器
+			var imgContainer = document.createElement("div");
+			imgContainer.className = "img-container";
+
+			// 创建ID显示
+			var idDiv = document.createElement("div");
+			idDiv.className = "img-id";
+			idDiv.appendChild(document.createTextNode(i+1));
+			imgContainer.appendChild(idDiv);
+
+			// 创建图片
+			var img = document.createElement("img");
+			img.id = "myimg" + i;
+			img.src = arrImgUrl[i];
+			img.referrerPolicy = "no-referrer";
+			imgContainer.appendChild(img);
+
+			// 创建标记单元格
+			var markDiv = document.createElement("div");
+			markDiv.id = "valTD" + i;
+			markDiv.className = "mark-cell";
+			markDiv.appendChild(document.createTextNode("0"));
+			imgContainer.appendChild(markDiv);
+
+			// 添加到当前行
+			row.appendChild(imgContainer);
+		}
+	}
+</script>
+</HTML>
