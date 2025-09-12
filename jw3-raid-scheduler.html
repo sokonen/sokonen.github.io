@@ -134,11 +134,29 @@
             border-radius: 3px;
             border-left: 3px solid #4caf50;
         }
+        
+        .avg-endurance {
+            font-size: 12px;
+            color: #666;
+            font-weight: normal;
+        }
+        
         .team-member {
             display: flex;
             justify-content: space-between;
             margin-bottom: 3px;
             font-size: 14px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: flex;
+            align-items: center;
+        }
+        
+        .team-member span {
+            flex-shrink: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         .stats-container {
             display: flex;
@@ -324,24 +342,28 @@
             <div id="playerMessage"></div>
 
             <!-- 账号管理表单 -->
-            <div class="form-group">
-                <label for="accountPlayerId">所属玩家：</label>
-                <select id="accountPlayerId"></select>
-            </div>
-            <div class="form-group">
-                <label for="accountName">账号名称：</label>
-                <input type="text" id="accountName" placeholder="输入账号名称">
-            </div>
-            <div class="form-group">
-                <label for="accountType">角色类型：</label>
-                <select id="accountType">
-                    <option value="DPS">DPS（输出）</option>
-                    <option value="奶妈">奶妈（治疗）</option>
-                </select>
-            </div>
-            <button onclick="addAccount()">添加账号</button>
-            <button onclick="clearAccountForm()" class="button-secondary">清空</button>
-            <div id="accountMessage"></div>
+                <div class="form-group">
+                    <label for="accountPlayerId">所属玩家：</label>
+                    <select id="accountPlayerId"></select>
+                </div>
+                <div class="form-group">
+                    <label for="accountName">账号名称：</label>
+                    <input type="text" id="accountName" placeholder="输入账号名称">
+                </div>
+                <div class="form-group">
+                    <label for="accountType">角色类型：</label>
+                    <select id="accountType">
+                        <option value="DPS">DPS（输出）</option>
+                        <option value="奶妈">奶妈（治疗）</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="accountEndurance">精耐：</label>
+                    <input type="text" id="accountEndurance" placeholder="输入精耐数值">
+                </div>
+                <button onclick="addAccount()">添加账号</button>
+                <button onclick="clearAccountForm()" class="button-secondary">清空</button>
+                <div id="accountMessage"></div>
 
             <!-- 玩家列表及空闲时间设置 -->
             <div id="playersList">
@@ -380,6 +402,7 @@
                         <th>角色1</th>
                         <th>角色2</th>
                         <th>角色3</th>
+                        <th>平均精耐</th>
                         <th>操作</th>
                     </tr>
                 </thead>
@@ -430,6 +453,10 @@
                     <option value="DPS">DPS（输出）</option>
                     <option value="奶妈">奶妈（治疗）</option>
                 </select>
+            </div>
+            <div class="form-group">
+                <label for="editAccountEndurance">精耐：</label>
+                <input type="text" id="editAccountEndurance" placeholder="输入精耐数值">
             </div>
             <button onclick="saveAccountEdit()">保存</button>
             <button onclick="closeAccountModal()" class="button-secondary">取消</button>
@@ -592,7 +619,7 @@
                         if (!usedAccountIds.has(account.id)) {
                             const option = document.createElement('option');
                             option.value = account.id;
-                            option.textContent = `${account.name} (${account.type})`;
+                            option.textContent = `${account.name} (${account.type}) 精耐:${account.endurance || 0}`;
                             select.appendChild(option);
                         }
                     });
@@ -672,6 +699,7 @@
                                 <div class="account-info">
                                     <span>${account.name}</span>
                                     <span class="${account.type === '奶妈' ? '奶妈' : ''}">${account.type}</span>
+                                    <span>精耐:${account.endurance || 0}</span>
                                 </div>
                                 <div>
                                     <button onclick="editAccount('${account.id}')" class="button-small">编辑</button>
@@ -812,6 +840,7 @@
             const playerId = document.getElementById('accountPlayerId').value;
             const accountName = document.getElementById('accountName').value.trim();
             const accountType = document.getElementById('accountType').value;
+            const accountEndurance = document.getElementById('accountEndurance').value;
             const accountMessage = document.getElementById('accountMessage');
 
             if (!playerId || !accountName) {
@@ -824,7 +853,8 @@
                 id: Date.now().toString(),
                 playerId: playerId,
                 name: accountName,
-                type: accountType
+                type: accountType,
+                endurance: accountEndurance ? parseInt(accountEndurance) : 0
             };
 
             accounts.push(newAccount);
@@ -853,6 +883,7 @@
                 document.getElementById('editAccountId').value = account.id;
                 document.getElementById('editAccountName').value = account.name;
                 document.getElementById('editAccountType').value = account.type;
+                document.getElementById('editAccountEndurance').value = account.endurance || 0;
                 document.getElementById('accountModal').style.display = 'block';
             }
         }
@@ -862,6 +893,7 @@
             const accountId = document.getElementById('editAccountId').value;
             const accountName = document.getElementById('editAccountName').value.trim();
             const accountType = document.getElementById('editAccountType').value;
+            const accountEndurance = document.getElementById('editAccountEndurance').value;
             
             if (!accountName) {
                 alert('请输入账号名称');
@@ -872,6 +904,7 @@
             if (accountIndex !== -1) {
                 accounts[accountIndex].name = accountName;
                 accounts[accountIndex].type = accountType;
+                accounts[accountIndex].endurance = accountEndurance ? parseInt(accountEndurance) : 0;
                 saveData();
                 updatePlayersList();
                 updateAccountsSelect();
@@ -964,7 +997,7 @@
 
             if (teams.length === 0) {
                 const row = document.createElement('tr');
-                row.innerHTML = '<td colspan="6" class="empty-slot">暂无固定阵容</td>';
+                row.innerHTML = '<td colspan="7" class="empty-slot">暂无固定阵容</td>';
                 tableBody.appendChild(row);
                 return;
             }
@@ -977,6 +1010,14 @@
                 const account1Name = account1 ? `${account1.name} (${account1.type})` : '未知';
                 const account2Name = account2 ? `${account2.name} (${account2.type})` : '未知';
                 const account3Name = account3 ? `${account3.name} (${account3.type})` : '未知';
+                
+                // 计算平均精耐
+                let totalEndurance = 0;
+                let count = 0;
+                if (account1 && account1.endurance !== undefined) { totalEndurance += account1.endurance; count++; }
+                if (account2 && account2.endurance !== undefined) { totalEndurance += account2.endurance; count++; }
+                if (account3 && account3.endurance !== undefined) { totalEndurance += account3.endurance; count++; }
+                const avgEndurance = count > 0 ? (totalEndurance / count).toFixed(1) : '-';
 
                 const row = document.createElement('tr');
                 row.innerHTML = `
@@ -985,6 +1026,7 @@
                     <td>${account1Name}</td>
                     <td>${account2Name}</td>
                     <td>${account3Name}</td>
+                    <td>${avgEndurance}</td>
                     <td>
                         <button onclick="editTeam('${team.id}')">编辑</button>
                         <button onclick="deleteTeam('${team.id}')" class="button-secondary">删除</button>
@@ -1260,7 +1302,21 @@
                         teams.forEach(team => {
                             const teamElement = document.createElement('div');
                             teamElement.className = 'team';
-                            teamElement.innerHTML = `<strong>${team.name}</strong>`;
+                            
+                            // 计算队伍平均精耐
+                            let totalEndurance = 0;
+                            let validAccounts = 0;
+                            team.accountIds.forEach(accountId => {
+                                const account = accounts.find(a => a.id === accountId);
+                                if (account && account.endurance) {
+                                    totalEndurance += parseInt(account.endurance);
+                                    validAccounts++;
+                                }
+                            });
+                            const avgEndurance = validAccounts > 0 ? (totalEndurance / validAccounts).toFixed(1) : '-';
+                            
+                            // 在队伍名称后面显示平均精耐
+                            teamElement.innerHTML = `<strong>${team.name}</strong> <span class="avg-endurance">${avgEndurance}</span>`;
 
                             team.accountIds.forEach(accountId => {
                                 const account = accounts.find(a => a.id === accountId);
@@ -1272,8 +1328,8 @@
                                     teamElement.innerHTML += `
                                         <div class="team-member">
                                             <span>${account.name}</span>
-                                            <span class="${typeClass}">${account.type}</span>
-                                            <span class="player-name">(${playerName})</span>
+                                            <span class="${account.type === '奶妈' ? '奶妈' : ''}">${account.type}</span>
+                                            <span>(${playerName})</span>
                                         </div>
                                     `;
                                 }
