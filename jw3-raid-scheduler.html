@@ -1185,11 +1185,12 @@
         function editTeam(teamId) {
             const team = teams.find(t => t.id === teamId);
             if (team) {
-                document.getElementById('teamName').value = team.name;
-                document.getElementById('teamAccount1').value = team.accountIds[0];
-                document.getElementById('teamAccount2').value = team.accountIds[1];
-                document.getElementById('teamAccount3').value = team.accountIds[2];
-                // 在实际应用中，这里可以实现完整的编辑功能
+                const newName = prompt('请输入新的阵容名称：', team.name);
+                if (newName && newName.trim() !== '') {
+                    team.name = newName.trim();
+                    saveData();
+                    updateTeamsTable();
+                }
             }
         }
 
@@ -1803,33 +1804,32 @@
         
         // 保存模拟后的队伍为新的预设队伍
         function saveSimulatedTeams() {
-            const newTeamName = prompt('请输入新队伍的名称后缀（将在原队伍名称后添加）：', '模拟调整');
-            
-            if (!newTeamName) {
+            if (!simulationData.teams || simulationData.teams.length === 0) {
+                alert('请先加载预设队伍进行调整');
                 return;
             }
             
-            // 为每个模拟队伍创建新的预设队伍
-            simulationData.teams.forEach(simTeam => {
-                // 查找原始队伍
-                const originalTeam = teams.find(t => t.id === simTeam.id);
-                if (originalTeam) {
-                    // 创建新队伍
+            if (confirm('确定要清空现有固定阵容并替换为模拟调整后的队伍吗？')) {
+                // 清空现有固定阵容
+                teams = [];
+                
+                // 添加模拟调整后的队伍
+                simulationData.teams.forEach(simTeam => {
                     const newTeam = {
                         id: Date.now().toString() + Math.floor(Math.random() * 1000),
-                        name: originalTeam.name + '-' + newTeamName,
+                        name: simTeam.name,
                         accountIds: [...simTeam.accountIds]
                     };
                     
                     teams.push(newTeam);
-                }
-            });
-            
-            // 保存数据并更新界面
-            saveData();
-            updateTeamsTable();
-            
-            alert('新队伍已保存到固定阵容中！');
+                });
+                
+                // 保存数据并更新界面
+                saveData();
+                updateTeamsTable();
+                
+                alert('固定阵容已更新！');
+            }
         }
     </script>
 </body>
