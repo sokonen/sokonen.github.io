@@ -319,6 +319,121 @@
             text-align: right;
             padding-right: 10px;
         }
+        
+        /* 模拟组队模块样式 */
+        #simulation-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .simulation-section {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .simulation-section h3 {
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        
+        .drag-area {
+            min-height: 150px;
+            padding: 10px;
+            border: 2px dashed #ccc;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        
+        .teams-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+        }
+        
+        .sim-team {
+            background-color: #f1f8e9;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            transition: transform 0.2s;
+        }
+        
+        .sim-team:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .sim-team h4 {
+            color: #4caf50;
+            margin-bottom: 8px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #ddd;
+            font-size: 14px;
+        }
+        
+        .character-card {
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 8px;
+            margin-bottom: 6px;
+            cursor: move;
+            transition: all 0.2s;
+            position: relative;
+            font-size: 13px;
+        }
+        
+        .character-card:hover {
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            transform: translateY(-2px);
+        }
+        
+        .character-card.dragging {
+            opacity: 0.5;
+            transform: scale(1.05);
+        }
+        
+        .character-card.over {
+            border: 2px dashed #4caf50;
+        }
+        
+        .character-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .character-name {
+            font-weight: bold;
+        }
+        
+        .character-type {
+            font-size: 12px;
+            padding: 2px 6px;
+            border-radius: 3px;
+            background-color: #e0e0e0;
+        }
+        
+        .character-player {
+            font-size: 11px;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .empty-team {
+            background-color: #fff3e0;
+            border: 2px dashed #ff9800;
+            border-radius: 5px;
+            padding: 30px 15px;
+            text-align: center;
+            color: #ff9800;
+            min-height: 150px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
     </style>
 </head>
 <body>
@@ -421,6 +536,35 @@
                 <button onclick="exportLocalStorage()" class="button-secondary">导出数据</button>
             </div>
             <div id="dataMessage"></div>
+        </div>
+
+        <!-- 模拟组队 -->
+        <div id="simulation-team" class="module">
+            <h2>模拟组队</h2>
+            <p>拖拽角色到其他角色上进行替换，可将调整后的队伍保存为新的预设队伍</p>
+            
+            <div class="form-group">
+                <button onclick="loadTeamsForSimulation()">加载预设队伍</button>
+                <button onclick="saveSimulatedTeams()" class="button-secondary">应用并保存新队伍</button>
+            </div>
+            
+            <div id="simulation-container">
+                <!-- 待分配区域 -->
+                <div class="simulation-section">
+                    <h3>待分配角色</h3>
+                    <div id="unassigned-characters" class="drag-area">
+                        <p class="empty-slot">暂无待分配角色</p>
+                    </div>
+                </div>
+                
+                <!-- 模拟队伍区域 -->
+                <div class="simulation-section">
+                    <h3>队伍配置</h3>
+                    <div id="simulated-teams" class="teams-container">
+                        <p class="empty-slot">请先加载预设队伍</p>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- 排班结果 -->
@@ -1397,6 +1541,295 @@
             a.download = `jw3-schedule-current.txt`;
             a.click();
             URL.revokeObjectURL(url);
+        }
+
+        // 模拟组队相关功能
+        let simulationData = {
+            teams: [], // 模拟区域的队伍数据
+            unassignedCharacters: [] // 待分配角色
+        };
+        
+        // 当前拖拽的角色
+        let draggedCharacter = null;
+        
+        // 加载预设队伍到模拟区域
+        function loadTeamsForSimulation() {
+            // 复制当前的预设队伍数据
+            simulationData.teams = JSON.parse(JSON.stringify(teams));
+            
+            // 清空待分配角色
+            simulationData.unassignedCharacters = [];
+            
+            // 收集所有已分配到队伍中的角色ID
+            const assignedAccountIds = new Set();
+            teams.forEach(team => {
+                team.accountIds.forEach(accountId => {
+                    assignedAccountIds.add(accountId);
+                });
+            });
+            
+            // 将未被分配到任何预设队伍的角色加入待分配区域
+            accounts.forEach(account => {
+                if (!assignedAccountIds.has(account.id)) {
+                    simulationData.unassignedCharacters.push(account.id);
+                }
+            });
+            
+            // 渲染模拟队伍和待分配角色
+            renderSimulatedTeams();
+            renderUnassignedCharacters();
+        }
+        
+        // 渲染模拟队伍
+        function renderSimulatedTeams() {
+            const container = document.getElementById('simulated-teams');
+            
+            if (simulationData.teams.length === 0) {
+                container.innerHTML = '<p class="empty-slot">请先加载预设队伍</p>';
+                return;
+            }
+            
+            container.innerHTML = '';
+            
+            simulationData.teams.forEach(team => {
+                const teamElement = document.createElement('div');
+                teamElement.className = 'sim-team';
+                teamElement.dataset.teamId = team.id;
+                
+                // 计算队伍平均精耐
+                let totalEndurance = 0;
+                let validAccounts = 0;
+                team.accountIds.forEach(accountId => {
+                    const account = accounts.find(a => a.id === accountId);
+                    if (account && account.endurance) {
+                        totalEndurance += parseInt(account.endurance);
+                        validAccounts++;
+                    }
+                });
+                const avgEndurance = validAccounts > 0 ? (totalEndurance / validAccounts).toFixed(1) : '-';
+                
+                teamElement.innerHTML = `<h4>${team.name} (${avgEndurance})</h4>`;
+                
+                // 添加队伍成员
+                team.accountIds.forEach(accountId => {
+                    const account = accounts.find(a => a.id === accountId);
+                    if (account) {
+                        const player = players.find(p => p.id === account.playerId);
+                        const playerName = player ? player.name : '未知';
+                        const typeClass = account.type === '奶妈' ? '奶妈' : '';
+                        
+                        const characterCard = createCharacterCard(account, playerName, typeClass);
+                        teamElement.appendChild(characterCard);
+                    }
+                });
+                
+                container.appendChild(teamElement);
+            });
+        }
+        
+        // 渲染待分配角色
+        function renderUnassignedCharacters() {
+            const container = document.getElementById('unassigned-characters');
+            
+            if (simulationData.unassignedCharacters.length === 0) {
+                container.innerHTML = '<p class="empty-slot">暂无待分配角色</p>';
+                return;
+            }
+            
+            container.innerHTML = '';
+            
+            simulationData.unassignedCharacters.forEach(accountId => {
+                const account = accounts.find(a => a.id === accountId);
+                if (account) {
+                    const player = players.find(p => p.id === account.playerId);
+                    const playerName = player ? player.name : '未知';
+                    const typeClass = account.type === '奶妈' ? '奶妈' : '';
+                    
+                    const characterCard = createCharacterCard(account, playerName, typeClass);
+                    container.appendChild(characterCard);
+                }
+            });
+        }
+        
+        // 创建角色卡片
+        function createCharacterCard(account, playerName, typeClass) {
+            const card = document.createElement('div');
+            card.className = 'character-card';
+            card.dataset.accountId = account.id;
+            card.draggable = true;
+            
+            card.innerHTML = `
+                <div class="character-info">
+                    <span class="character-name">${account.name}</span>
+                    <span class="character-type ${typeClass}">${account.type}</span>
+                </div>
+                <div class="character-player">玩家: ${playerName}</div>
+                <div class="character-player">精耐: ${account.endurance || 0}</div>
+            `;
+            
+            // 添加拖拽事件监听器
+            card.addEventListener('dragstart', handleDragStart);
+            card.addEventListener('dragend', handleDragEnd);
+            card.addEventListener('dragover', handleDragOver);
+            card.addEventListener('dragenter', handleDragEnter);
+            card.addEventListener('dragleave', handleDragLeave);
+            card.addEventListener('drop', handleDrop);
+            
+            return card;
+        }
+        
+        // 拖拽开始
+        function handleDragStart(e) {
+            draggedCharacter = this.dataset.accountId;
+            this.classList.add('dragging');
+            e.dataTransfer.setData('text/plain', draggedCharacter);
+        }
+        
+        // 拖拽结束
+        function handleDragEnd() {
+            draggedCharacter = null;
+            document.querySelectorAll('.character-card').forEach(card => {
+                card.classList.remove('dragging', 'over');
+            });
+        }
+        
+        // 拖拽经过
+        function handleDragOver(e) {
+            e.preventDefault();
+            this.classList.add('over');
+        }
+        
+        // 拖拽进入
+        function handleDragEnter(e) {
+            e.preventDefault();
+            this.classList.add('over');
+        }
+        
+        // 拖拽离开
+        function handleDragLeave() {
+            this.classList.remove('over');
+        }
+        
+        // 拖拽放下
+        function handleDrop(e) {
+            e.preventDefault();
+            this.classList.remove('over');
+            
+            const targetAccountId = this.dataset.accountId;
+            
+            // 如果拖拽到自身，不进行任何操作
+            if (draggedCharacter === targetAccountId) {
+                return;
+            }
+            
+            // 找到拖拽源和目标位置
+            const draggedFromTeam = findCharacterInTeams(draggedCharacter);
+            const targetTeam = findCharacterInTeams(targetAccountId);
+            
+            if (draggedFromTeam && targetTeam) {
+                // 两个角色都在队伍中，进行交换
+                swapCharactersInTeams(draggedFromTeam.teamId, draggedFromTeam.index, targetTeam.teamId, targetTeam.index);
+            } else if (draggedFromTeam) {
+                // 从队伍拖拽到待分配区域
+                moveCharacterFromTeamToUnassigned(draggedFromTeam.teamId, draggedFromTeam.index);
+                // 从待分配区域添加一个角色到队伍
+                moveCharacterFromUnassignedToTeam(targetAccountId, targetTeam.teamId);
+            } else {
+                // 从待分配区域拖拽到队伍
+                moveCharacterFromUnassignedToTeam(draggedCharacter, targetTeam.teamId, targetTeam.index);
+            }
+            
+            // 重新渲染
+            renderSimulatedTeams();
+            renderUnassignedCharacters();
+        }
+        
+        // 在队伍中查找角色
+        function findCharacterInTeams(accountId) {
+            for (let i = 0; i < simulationData.teams.length; i++) {
+                const team = simulationData.teams[i];
+                const index = team.accountIds.indexOf(accountId);
+                if (index !== -1) {
+                    return { teamId: team.id, index: index };
+                }
+            }
+            return null;
+        }
+        
+        // 交换队伍中的角色
+        function swapCharactersInTeams(teamId1, index1, teamId2, index2) {
+            const team1 = simulationData.teams.find(t => t.id === teamId1);
+            const team2 = simulationData.teams.find(t => t.id === teamId2);
+            
+            if (team1 && team2) {
+                const temp = team1.accountIds[index1];
+                team1.accountIds[index1] = team2.accountIds[index2];
+                team2.accountIds[index2] = temp;
+            }
+        }
+        
+        // 将角色从队伍移动到待分配区域
+        function moveCharacterFromTeamToUnassigned(teamId, index) {
+            const team = simulationData.teams.find(t => t.id === teamId);
+            if (team && index >= 0 && index < team.accountIds.length) {
+                const accountId = team.accountIds.splice(index, 1)[0];
+                simulationData.unassignedCharacters.push(accountId);
+            }
+        }
+        
+        // 将角色从待分配区域移动到队伍
+        function moveCharacterFromUnassignedToTeam(accountId, teamId, index) {
+            const team = simulationData.teams.find(t => t.id === teamId);
+            const unassignedIndex = simulationData.unassignedCharacters.indexOf(accountId);
+            
+            if (team && unassignedIndex !== -1) {
+                // 从待分配区域移除
+                simulationData.unassignedCharacters.splice(unassignedIndex, 1);
+                
+                // 添加到队伍
+                if (typeof index === 'number' && index >= 0 && index < team.accountIds.length) {
+                    team.accountIds[index] = accountId;
+                } else {
+                    // 如果没有指定位置，找到一个空位
+                    for (let i = 0; i < team.accountIds.length; i++) {
+                        if (!team.accountIds[i]) {
+                            team.accountIds[i] = accountId;
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+        
+        // 保存模拟后的队伍为新的预设队伍
+        function saveSimulatedTeams() {
+            const newTeamName = prompt('请输入新队伍的名称后缀（将在原队伍名称后添加）：', '模拟调整');
+            
+            if (!newTeamName) {
+                return;
+            }
+            
+            // 为每个模拟队伍创建新的预设队伍
+            simulationData.teams.forEach(simTeam => {
+                // 查找原始队伍
+                const originalTeam = teams.find(t => t.id === simTeam.id);
+                if (originalTeam) {
+                    // 创建新队伍
+                    const newTeam = {
+                        id: Date.now().toString() + Math.floor(Math.random() * 1000),
+                        name: originalTeam.name + '-' + newTeamName,
+                        accountIds: [...simTeam.accountIds]
+                    };
+                    
+                    teams.push(newTeam);
+                }
+            });
+            
+            // 保存数据并更新界面
+            saveData();
+            updateTeamsTable();
+            
+            alert('新队伍已保存到固定阵容中！');
         }
     </script>
 </body>
